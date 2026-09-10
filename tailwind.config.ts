@@ -14,9 +14,10 @@ const config: Config = {
         foreground: "var(--foreground)",
       },
       boxShadow: {
-        "neon-cyan": "0 0 15px -2px rgba(34, 211, 238, 0.4), 0 0 6px -2px rgba(34, 211, 238, 0.2)",
-        "neon-fuchsia": "0 0 15px -2px rgba(217, 70, 239, 0.4), 0 0 6px -2px rgba(217, 70, 239, 0.2)",
-        "neon-glow": "0 0 25px -3px rgba(34, 211, 238, 0.25), 0 0 10px -2px rgba(217, 70, 239, 0.25)",
+        "subtle-card": "0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4)",
+        "subtle-glow": "0 0 20px -5px rgba(56, 189, 248, 0.15)",
+        "subtle-accent": "0 0 25px -5px rgba(168, 85, 247, 0.12)",
+        "neon-cyan": "0 0 15px -2px rgba(34, 211, 238, 0.35)",
       },
     },
   },

@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
+  --background: #090a0f;
+  --foreground: #f4f4f6;
 }
 
 body {
@@ -16,11 +16,11 @@ body {
 
 /* Custom modern scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #090a0f;
 }
 ::-webkit-scrollbar-thumb {
   background: #27272a;
@@ -28,4 +28,25 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+/* Glass and subtle card styles */
+.glass-panel {
+  background: rgba(18, 20, 29, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card {
+  background: rgba(24, 27, 39, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-card-active {
+  background: rgba(30, 36, 56, 0.75);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 15px -3px rgba(56, 189, 248, 0.15);
 }
