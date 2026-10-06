@@ -24,6 +24,7 @@ import { Stepper } from "../components/Stepper";
 import { PromptConfigPanel } from "../components/PromptConfigPanel";
 import { QuestionsView } from "../components/QuestionsView";
 import { FinalPromptView } from "../components/FinalPromptView";
+import { ChatModal } from "../components/ChatModal";
 
 export default function AIPromptGeneratorPage() {
   const [mounted, setMounted] = useState(false);
@@ -39,11 +40,13 @@ export default function AIPromptGeneratorPage() {
 
   // Application workflow state
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>("");
   const [promptConfig, setPromptConfig] = useState<PromptConfig>(DEFAULT_PROMPT_CONFIG);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [answers, setAnswers] = useState<AnswersState>({});
   const [finalPrompt, setFinalPrompt] = useState<string>("");
+  const [additionalGuidelines, setAdditionalGuidelines] = useState<string>("");
 
   // Async & cooldown states
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
@@ -247,6 +250,8 @@ export default function AIPromptGeneratorPage() {
       setQuestions([]);
       setAnswers({});
       setFinalPrompt("");
+      setAdditionalGuidelines("");
+      setIsEnhancing(false);
       setCurrentStep(1);
       try {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.USER_PROMPT);
@@ -307,7 +312,19 @@ export default function AIPromptGeneratorPage() {
     const questionCount = promptConfig.questionsCount || 4;
 
     if (!isFollowUp || questions.length === 0) {
-      promptText = `A felhasználó célja a következő feladat / prompt létrehozása:
+      if (isEnhancing) {
+        promptText = `A felhasználó egy meglévő promptot szeretne továbbfejleszteni, finomhangolni.
+A meglévő prompt:
+"""
+${userInput.trim()}
+"""
+
+A prompt kívánt stílusa/tónusa: ${promptConfig.tone}
+A végleges prompt célnyelve: ${promptConfig.targetLanguage === "en" ? "Angol (English)" : "Magyar (Hungarian)"}
+
+Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható kérdést magyar nyelven (A, B, C opciókkal), amelyek segítenek kideríteni, hogyan lehetne a meglévő promptot a leghatékonyabban javítani és kiegészíteni!`;
+      } else {
+        promptText = `A felhasználó célja a következő feladat / prompt létrehozása:
 """
 ${userInput.trim()}
 """
@@ -316,6 +333,7 @@ A prompt kívánt stílusa/tónusa: ${promptConfig.tone}
 A végleges prompt célnyelve: ${promptConfig.targetLanguage === "en" ? "Angol (English)" : "Magyar (Hungarian)"}
 
 Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható kérdést magyar nyelven (A, B, C opciókkal), amelyek segítenek a legpontosabb prompt felépítésében!`;
+      }
     } else {
       // Follow-up context
       const previousQA = questions
@@ -464,7 +482,7 @@ ${
         })
         .join("\n\n");
 
-      const synthesisPrompt = `User's Initial Goal:
+      const synthesisPrompt = `${isEnhancing ? "User's Existing Prompt to Enhance:" : "User's Initial Goal:"}
 """
 ${userInput.trim()}
 """
@@ -473,11 +491,19 @@ User's Clarifying Answers to the Questions:
 """
 ${answersSummary}
 """
-
+${
+  additionalGuidelines.trim()
+    ? `\nAdditional Custom Guidelines / Rules provided by the user:\n"""\n${additionalGuidelines.trim()}\n"""\n`
+    : ""
+}
 Target Output Language: ${isEnglish ? "ENGLISH" : "HUNGARIAN"}
 Tone: ${promptConfig.tone}
 
-Please synthesize everything into the ultimate Master Prompt.`;
+Please synthesize everything into the ultimate Master Prompt. ${
+        isEnhancing
+          ? "Ensure the original prompt is significantly improved, expanded and refined based on these answers and guidelines."
+          : ""
+      }`;
 
       const genAI = new GoogleGenerativeAI(activeApiKey);
       const model = genAI.getGenerativeModel({
@@ -658,6 +684,32 @@ Please synthesize everything into the ultimate Master Prompt.`;
                 </div>
               </div>
 
+              {/* Mode Selection */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 p-1.5 bg-zinc-950/50 border border-zinc-800 rounded-xl w-full sm:w-fit mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEnhancing(false)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    !isEnhancing
+                      ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Új prompt létrehozása
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEnhancing(true)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isEnhancing
+                      ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Meglévő prompt átírása
+                </button>
+              </div>
+
               {/* Textarea */}
               <div className="relative pt-2">
                 <textarea
@@ -665,7 +717,7 @@ Please synthesize everything into the ultimate Master Prompt.`;
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="e.g. Egy modern, konverzió-optimalizált landing page-et szeretnék készíteni egy B2B SaaS szoftverhez, amivel növelhetjük az ingyenes próbaverzióra való feliratkozásokat..."
+                  placeholder={isEnhancing ? "Másold be ide a meglévő promptodat, amit javítani szeretnél..." : "e.g. Egy modern, konverzió-optimalizált landing page-et szeretnék készíteni egy B2B SaaS szoftverhez..."}
                   className="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl p-4 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 transition-all resize-y leading-relaxed"
                 />
                 <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1.5 px-1 font-mono">
@@ -745,6 +797,8 @@ Please synthesize everything into the ultimate Master Prompt.`;
               isCooldownActive={isCooldownActive}
               cooldownSeconds={cooldownSeconds}
               hasApiKey={Boolean(activeApiKey)}
+              additionalGuidelines={additionalGuidelines}
+              onAdditionalGuidelinesChange={setAdditionalGuidelines}
             />
           </motion.div>
         )}
@@ -779,6 +833,17 @@ Please synthesize everything into the ultimate Master Prompt.`;
           </p>
         </footer>
       </div>
+
+      {questions.length > 0 && (
+        <ChatModal
+          apiKey={activeApiKey}
+          selectedModel={selectedModel}
+          originalGoal={userInput}
+          finalPrompt={finalPrompt}
+          questions={questions}
+          answers={answers}
+        />
+      )}
     </div>
   );
 }

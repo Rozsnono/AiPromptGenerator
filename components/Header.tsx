@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action controls */}
-        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end flex-wrap">
           {/* Model selector */}
           <div className="relative flex items-center bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-sky-500/60 transition-colors shadow-sm">
             <Cpu className="w-3.5 h-3.5 text-sky-400 mr-2 shrink-0" />
