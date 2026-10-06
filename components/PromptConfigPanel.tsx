@@ -148,6 +148,29 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
               <p className="text-[11px] text-zinc-500">
                 Az AI pontosan ennyi mélyreható kérdést tesz fel a válaszadáshoz.
               </p>
+
+              {/* Beginner Friendly Questions Toggle */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => onChangeConfig({ ...config, beginnerFriendlyQuestions: !config.beginnerFriendlyQuestions })}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                    config.beginnerFriendlyQuestions
+                      ? "bg-sky-950/40 border-sky-500/70 text-white shadow-sm ring-1 ring-sky-500/20"
+                      : "bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-zinc-200">Kezdőbarát / Laikus Kérdések</div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
+                      Kevesebb zsargon. Programozói tudás nélkül is érthető megfogalmazás.
+                    </div>
+                  </div>
+                  <div className={`w-8 h-4 ml-3 flex items-center rounded-full transition-colors shrink-0 ${config.beginnerFriendlyQuestions ? 'bg-sky-500' : 'bg-zinc-700'}`}>
+                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${config.beginnerFriendlyQuestions ? 'translate-x-4' : 'translate-x-1'}`} />
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
 

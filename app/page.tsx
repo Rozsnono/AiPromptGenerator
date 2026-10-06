@@ -372,6 +372,10 @@ ${previousQA}
 Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A, B, C opciókkal), amelyek az eddig még tisztázatlan részletekre fókuszálnak! Ne ismételd a korábbi kérdéseket!`;
     }
 
+    if (promptConfig.beginnerFriendlyQuestions) {
+      promptText += `\n\nFONTOS: A kérdéseket úgy fogalmazd meg, hogy egy teljesen kezdő, vagy programozói tudással egyáltalán nem rendelkező személy is könnyen megértse őket! Kerüld a túlzott technikai szakzsargont, és ha szükséges, röviden magyarázd el az opciók jelentését konyhanyelven.`;
+    }
+
     while (attempt < maxRetries && !success) {
       attempt++;
       try {

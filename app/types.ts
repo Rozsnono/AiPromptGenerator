@@ -33,6 +33,7 @@ export interface PromptConfig {
   targetLanguage: TargetLanguage;
   tone: PromptTone;
   questionsCount: number;
+  beginnerFriendlyQuestions: boolean;
   customSystemInstruction: string;
   customQuestionsInstruction: string;
 }
