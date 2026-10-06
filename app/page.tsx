@@ -372,8 +372,24 @@ ${previousQA}
 Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A, B, C opciókkal), amelyek az eddig még tisztázatlan részletekre fókuszálnak! Ne ismételd a korábbi kérdéseket!`;
     }
 
-    if (promptConfig.beginnerFriendlyQuestions) {
-      promptText += `\n\nFONTOS: A kérdéseket úgy fogalmazd meg, hogy egy teljesen kezdő, vagy programozói tudással egyáltalán nem rendelkező személy is könnyen megértse őket! Kerüld a túlzott technikai szakzsargont, és ha szükséges, röviden magyarázd el az opciók jelentését konyhanyelven.`;
+    let knowledgeInstruction = "";
+    switch (promptConfig.knowledgeLevel) {
+      case "none":
+        knowledgeInstruction = "FONTOS: A kérdéseket úgy fogalmazd meg, hogy egy teljesen laikus, programozói tudással egyáltalán nem rendelkező személy is könnyen megértse őket! Minden opciót magyarázz el konyhanyelven, kerülve a szakzsargont.";
+        break;
+      case "beginner":
+        knowledgeInstruction = "A kérdéseket egy kezdő programozó szintjén fogalmazd meg. Használhatsz alapvető fogalmakat, de a bonyolultabb architekturális vagy specifikus dolgokat röviden magyarázd el az opcióknál.";
+        break;
+      case "intermediate":
+        knowledgeInstruction = "A kérdéseket egy haladó (medior) programozó szintjén fogalmazd meg. Nyugodtan használj szakzsargont és hivatkozz bevett gyakorlatokra.";
+        break;
+      case "advanced":
+        knowledgeInstruction = "A kérdéseket egy senior/profi fejlesztő szintjén fogalmazd meg. Térj ki a legmélyebb technikai, architekturális, skálázhatósági és optimalizációs részletekre is. A laikus magyarázatokra semmi szükség.";
+        break;
+    }
+    
+    if (knowledgeInstruction) {
+      promptText += `\n\n${knowledgeInstruction}`;
     }
 
     while (attempt < maxRetries && !success) {

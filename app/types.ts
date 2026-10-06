@@ -29,11 +29,13 @@ export type TargetLanguage = "en" | "hu";
 
 export type PromptTone = "technical" | "business" | "comprehensive" | "creative" | "concise";
 
+export type KnowledgeLevel = "none" | "beginner" | "intermediate" | "advanced";
+
 export interface PromptConfig {
   targetLanguage: TargetLanguage;
   tone: PromptTone;
   questionsCount: number;
-  beginnerFriendlyQuestions: boolean;
+  knowledgeLevel: KnowledgeLevel;
   customSystemInstruction: string;
   customQuestionsInstruction: string;
 }

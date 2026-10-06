@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Sliders, Globe, MessageSquare, BookOpen, RotateCcw, ChevronDown, ChevronUp, Check, Shield } from "lucide-react";
-import { PromptConfig, PromptTone, TargetLanguage } from "../app/types";
+import { PromptConfig, PromptTone, TargetLanguage, KnowledgeLevel } from "../app/types";
 import { DEFAULT_PROMPT_CONFIG, DEFAULT_SYNTHESIS_SYSTEM_INSTRUCTION, DEFAULT_QUESTIONS_SYSTEM_INSTRUCTION } from "../app/constants";
 
 interface PromptConfigPanelProps {
@@ -23,6 +23,13 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
     { id: "comprehensive", label: "Kimerítő & Architektúra", desc: "Minden részletre kiterjedő, lépésről lépésre" },
     { id: "creative", label: "Kreatív & Storytelling", desc: "Meggyőző stílus, narratíva és flow" },
     { id: "concise", label: "Tömör & Lényegretörő", desc: "Felesleges sallangok nélkül, direkt utasítások" },
+  ];
+
+  const knowledgeOptions: { id: KnowledgeLevel; label: string; desc: string }[] = [
+    { id: "none", label: "Semmi tudás / Laikus", desc: "Konyhanyelv, zsargonmentes magyarázatok" },
+    { id: "beginner", label: "Kezdő programozó", desc: "Alapfogalmak, részletesebb iránymutatások" },
+    { id: "intermediate", label: "Haladó (Medior)", desc: "Szabványos szakzsargon, iparági sztenderdek" },
+    { id: "advanced", label: "Szakértő (Senior)", desc: "Mély architekturális, optimalizációs szint" },
   ];
 
   const handleResetToDefaults = () => {
@@ -148,32 +155,41 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
               <p className="text-[11px] text-zinc-500">
                 Az AI pontosan ennyi mélyreható kérdést tesz fel a válaszadáshoz.
               </p>
-
-              {/* Beginner Friendly Questions Toggle */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => onChangeConfig({ ...config, beginnerFriendlyQuestions: !config.beginnerFriendlyQuestions })}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                    config.beginnerFriendlyQuestions
-                      ? "bg-sky-950/40 border-sky-500/70 text-white shadow-sm ring-1 ring-sky-500/20"
-                      : "bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                  }`}
-                >
-                  <div className="text-left">
-                    <div className="text-xs font-semibold text-zinc-200">Kezdőbarát / Laikus Kérdések</div>
-                    <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
-                      Kevesebb zsargon. Programozói tudás nélkül is érthető megfogalmazás.
-                    </div>
-                  </div>
-                  <div className={`w-8 h-4 ml-3 flex items-center rounded-full transition-colors shrink-0 ${config.beginnerFriendlyQuestions ? 'bg-sky-500' : 'bg-zinc-700'}`}>
-                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${config.beginnerFriendlyQuestions ? 'translate-x-4' : 'translate-x-1'}`} />
-                  </div>
-                </button>
-              </div>
             </div>
           </div>
 
+          {/* Programming Knowledge Level */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-sky-400" />
+              <span>Programozói tudásszint (Kérdések mélysége)</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {knowledgeOptions.map((opt) => {
+                const isSelected = config.knowledgeLevel === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => onChangeConfig({ ...config, knowledgeLevel: opt.id })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      isSelected
+                        ? "bg-sky-950/40 border-sky-500/70 text-white shadow-sm ring-1 ring-sky-500/20"
+                        : "bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                      <span>{opt.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                    </div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5 leading-snug">
+                      {opt.desc}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {/* Prompt Tone / Archetype */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">

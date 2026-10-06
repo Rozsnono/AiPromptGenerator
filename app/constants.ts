@@ -58,7 +58,7 @@ export const DEFAULT_PROMPT_CONFIG: PromptConfig = {
   targetLanguage: "en",
   tone: "technical",
   questionsCount: 4,
-  beginnerFriendlyQuestions: false,
+  knowledgeLevel: "intermediate",
   customSystemInstruction: DEFAULT_SYNTHESIS_SYSTEM_INSTRUCTION,
   customQuestionsInstruction: DEFAULT_QUESTIONS_SYSTEM_INSTRUCTION,
 };
