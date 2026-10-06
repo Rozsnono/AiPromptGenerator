@@ -5,6 +5,7 @@ import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { QuestionItem, AnswersState } from "../app/types";
 import toast from "react-hot-toast";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface ChatModalProps {
   apiKey: string;
@@ -175,7 +176,13 @@ ${finalPrompt || "Még nincs legenerálva."}
                         </>
                       )}
                     </div>
-                    <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                    {msg.role === "user" ? (
+                      <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                    ) : (
+                      <div className="-mt-1">
+                        <MarkdownRenderer content={msg.text} />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
