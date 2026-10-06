@@ -46,7 +46,8 @@ export default function AIPromptGeneratorPage() {
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [answers, setAnswers] = useState<AnswersState>({});
   const [finalPrompt, setFinalPrompt] = useState<string>("");
-  const [additionalGuidelines, setAdditionalGuidelines] = useState<string>("");
+  const [guidelines, setGuidelines] = useState<Record<number, string>>({});
+  const [roundEnds, setRoundEnds] = useState<number[]>([]);
 
   // Async & cooldown states
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
@@ -250,7 +251,8 @@ export default function AIPromptGeneratorPage() {
       setQuestions([]);
       setAnswers({});
       setFinalPrompt("");
-      setAdditionalGuidelines("");
+      setGuidelines({});
+      setRoundEnds([]);
       setIsEnhancing(false);
       setCurrentStep(1);
       try {
@@ -347,7 +349,13 @@ Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható ké
               ansText = `Opció ${userAns.selectedOption}: "${q.options[userAns.selectedOption as "A" | "B" | "C"]}"`;
             }
           }
-          return `Kérdés ${idx + 1}: "${q.question}"\nVálasz: ${ansText}`;
+          
+          let roundGuideline = "";
+          if (guidelines[q.id]) {
+            roundGuideline = `\n[Ezen a ponton a felhasználó az alábbi irányelvet adta meg: "${guidelines[q.id]}"]`;
+          }
+          
+          return `Kérdés ${idx + 1}: "${q.question}"\nVálasz: ${ansText}${roundGuideline}`;
         })
         .join("\n\n");
 
@@ -404,10 +412,15 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
           setQuestions(validatedQuestions);
           setAnswers({});
           setFinalPrompt("");
+          setGuidelines({});
+          setRoundEnds([]);
           setCurrentStep(2);
           toast.success(`${validatedQuestions.length} kérdés sikeresen előállítva!`);
         } else {
           const currentCount = questions.length;
+          const lastQuestionId = questions[currentCount - 1].id;
+          setRoundEnds((prev) => Array.from(new Set([...prev, lastQuestionId])));
+          
           const renumbered: QuestionItem[] = validatedQuestions.map((q, idx) => ({
             id: currentCount + idx + 1,
             question: q.question,
@@ -478,7 +491,11 @@ ${
               selectedText = `Opció ${optionLetter}: "${optionContent}"`;
             }
           }
-          return `Kérdés ${idx + 1}: "${q.question}"\nVálasz: ${selectedText}`;
+          let roundGuideline = "";
+          if (guidelines[q.id]) {
+            roundGuideline = `\n[User's Custom Guideline inserted here: "${guidelines[q.id]}"]`;
+          }
+          return `Kérdés ${idx + 1}: "${q.question}"\nVálasz: ${selectedText}${roundGuideline}`;
         })
         .join("\n\n");
 
@@ -491,11 +508,7 @@ User's Clarifying Answers to the Questions:
 """
 ${answersSummary}
 """
-${
-  additionalGuidelines.trim()
-    ? `\nAdditional Custom Guidelines / Rules provided by the user:\n"""\n${additionalGuidelines.trim()}\n"""\n`
-    : ""
-}
+
 Target Output Language: ${isEnglish ? "ENGLISH" : "HUNGARIAN"}
 Tone: ${promptConfig.tone}
 
@@ -797,8 +810,9 @@ Please synthesize everything into the ultimate Master Prompt. ${
               isCooldownActive={isCooldownActive}
               cooldownSeconds={cooldownSeconds}
               hasApiKey={Boolean(activeApiKey)}
-              additionalGuidelines={additionalGuidelines}
-              onAdditionalGuidelinesChange={setAdditionalGuidelines}
+              guidelines={guidelines}
+              onGuidelineChange={(qId, text) => setGuidelines(prev => ({ ...prev, [qId]: text }))}
+              roundEnds={roundEnds}
             />
           </motion.div>
         )}

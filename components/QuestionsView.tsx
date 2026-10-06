@@ -17,8 +17,9 @@ interface QuestionsViewProps {
   isCooldownActive: boolean;
   cooldownSeconds: number;
   hasApiKey: boolean;
-  additionalGuidelines: string;
-  onAdditionalGuidelinesChange: (val: string) => void;
+  guidelines: Record<number, string>;
+  onGuidelineChange: (questionId: number, val: string) => void;
+  roundEnds: number[];
 }
 
 export const QuestionsView: React.FC<QuestionsViewProps> = ({
@@ -33,8 +34,9 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   isCooldownActive,
   cooldownSeconds,
   hasApiKey,
-  additionalGuidelines,
-  onAdditionalGuidelinesChange,
+  guidelines,
+  onGuidelineChange,
+  roundEnds,
 }) => {
   const [filterMode, setFilterMode] = useState<"all" | "unanswered">("all");
 
@@ -149,13 +151,13 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
             const actualIndex = questions.findIndex((item) => item.id === q.id);
 
             return (
-              <motion.div
-                key={q.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 hover:border-zinc-700/80 transition-all shadow-sm space-y-4"
-              >
-                {/* Question Header */}
+              <React.Fragment key={q.id}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 hover:border-zinc-700/80 transition-all shadow-sm space-y-4"
+                >
+                  {/* Question Header */}
                 <div className="flex items-start gap-3 flex-wrap w-full">
                   <span className="text-xs font-mono font-bold px-2 py-1 rounded-lg bg-zinc-800/90 text-sky-400 border border-zinc-700/70 shrink-0 mt-0.5">
                     #{actualIndex + 1}
@@ -257,28 +259,34 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   />
                 </div>
               </motion.div>
-            );
-          })
-        )}
-      </div>
 
-      {/* Additional Guidelines (Irányelvek) */}
-      <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 shadow-sm space-y-3">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-sky-400" />
-          <h3 className="text-sm font-semibold text-zinc-100">További irányelvek, megjegyzések</h3>
-        </div>
-        <p className="text-xs text-zinc-400">
-          Van olyan szempont, amire nem kérdezett rá a rendszer, vagy amit mindenképp szeretnél belefoglalni a promptba?
-        </p>
-        <textarea
-          rows={3}
-          placeholder="Pl. Fontos, hogy a válasz lépésről lépésre legyen levezetve, és legyen benne egy humoros megjegyzés is..."
-          value={additionalGuidelines}
-          onChange={(e) => onAdditionalGuidelinesChange(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 transition-all resize-y"
-        />
-      </div>
+              {(roundEnds.includes(q.id) || q.id === questions[questions.length - 1].id) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 shadow-sm space-y-3 mt-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-sky-400" />
+                    <h3 className="text-sm font-semibold text-zinc-100">További irányelvek, megjegyzések ehhez a körhöz</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Van olyan szempont, amire nem kérdezett rá a rendszer ebben a blokkban, vagy amit még hozzáadnál? Ezt figyelembe veszi a következő kérdéseknél és a véglegesítésnél is.
+                  </p>
+                  <textarea
+                    rows={3}
+                    placeholder="Pl. Fontos, hogy a válasz lépésről lépésre legyen levezetve..."
+                    value={guidelines[q.id] || ""}
+                    onChange={(e) => onGuidelineChange(q.id, e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 transition-all resize-y"
+                  />
+                </motion.div>
+              )}
+            </React.Fragment>
+          );
+        })
+      )}
+    </div>
 
       {/* Action Footer for Step 2 */}
       <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-zinc-800/80">
