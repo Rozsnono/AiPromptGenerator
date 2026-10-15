@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight, RotateCcw, HelpCircle, Layers, Lightbulb } from "lucide-react";
@@ -19,6 +18,7 @@ import {
   DEFAULT_PROMPT_CONFIG,
   PRESETS,
 } from "./constants";
+import { generateClaudeText, listClaudeModels, describeClaudeError } from "./claude";
 import { Header } from "../components/Header";
 import { Stepper } from "../components/Stepper";
 import { PromptConfigPanel } from "../components/PromptConfigPanel";
@@ -30,12 +30,12 @@ export default function AIPromptGeneratorPage() {
   const [mounted, setMounted] = useState(false);
 
   // API Key management
-  const envApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+  const envApiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "";
   const [customApiKey, setCustomApiKey] = useState<string>("");
 
   // Models management
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>(DEFAULT_MODELS);
-  const [selectedModel, setSelectedModel] = useState<string>("gemini-1.5-flash");
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODELS[0].id);
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
 
   // Application workflow state
@@ -70,69 +70,27 @@ export default function AIPromptGeneratorPage() {
 
       setIsLoadingModels(true);
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`
-        );
+        const filtered = await listClaudeModels(key);
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData?.error?.message || `HTTP ${response.status}: Failed to fetch models`);
-        }
+        if (filtered.length > 0) {
+          setAvailableModels(filtered);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEYS.CACHED_MODELS, JSON.stringify(filtered));
+          } catch {}
 
-        const data = await response.json();
-        if (data && Array.isArray(data.models)) {
-          const filtered: ModelInfo[] = data.models
-            .filter((m: any) => {
-              const methods: string[] = m.supportedGenerationMethods || [];
-              const isGenerative = methods.includes("generateContent");
-              const isGemini = typeof m.name === "string" && m.name.includes("gemini");
-              return isGenerative && isGemini;
-            })
-            .map((m: any) => {
-              const cleanId = m.name.replace(/^models\//, "");
-              const displayName = m.displayName || cleanId;
-              return {
-                id: cleanId,
-                name: displayName !== cleanId ? `${displayName} (${cleanId})` : cleanId,
-                description: m.description,
-              };
-            });
-
-          filtered.sort((a, b) => {
-            const getScore = (id: string) => {
-              if (id.includes("2.5-flash")) return 120;
-              if (id.includes("2.0-flash")) return 110;
-              if (id.includes("1.5-flash")) return 100;
-              if (id.includes("1.5-pro")) return 90;
-              if (id.includes("flash")) return 80;
-              if (id.includes("pro")) return 70;
-              return 10;
-            };
-            return getScore(b.id) - getScore(a.id);
+          setSelectedModel((prev) => {
+            const exists = filtered.some((m) => m.id === prev);
+            return exists ? prev : filtered[0].id;
           });
 
-          if (filtered.length > 0) {
-            setAvailableModels(filtered);
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEYS.CACHED_MODELS, JSON.stringify(filtered));
-            } catch {}
-
-            setSelectedModel((prev) => {
-              const exists = filtered.some((m) => m.id === prev);
-              if (exists) return prev;
-              const defaultFlash = filtered.find((m) => m.id.includes("flash"));
-              return defaultFlash ? defaultFlash.id : filtered[0].id;
-            });
-
-            if (showToast) {
-              toast.success(`${filtered.length} Gemini modell sikeresen betöltve!`);
-            }
+          if (showToast) {
+            toast.success(`${filtered.length} Claude modell sikeresen betöltve!`);
           }
         }
       } catch (err: any) {
         console.warn("Failed to fetch models:", err);
         if (showToast) {
-          toast.error(`Nem sikerült lekérni a modelleket: ${err?.message || "Hiba"}`);
+          toast.error(`Nem sikerült lekérni a modelleket: ${describeClaudeError(err)}`);
         }
       } finally {
         setIsLoadingModels(false);
@@ -162,7 +120,8 @@ export default function AIPromptGeneratorPage() {
           if (Array.isArray(parsed) && parsed.length > 0) setAvailableModels(parsed);
         } catch {}
       }
-      if (storedModel) setSelectedModel(storedModel);
+      // Régi (nem Claude) modellazonosítót nem töltünk vissza
+      if (storedModel && storedModel.startsWith("claude")) setSelectedModel(storedModel);
       if (storedInput) setUserInput(storedInput);
       if (storedConfig) {
         try {
@@ -299,7 +258,7 @@ export default function AIPromptGeneratorPage() {
     }
 
     if (!activeApiKey) {
-      toast.error("Google Gemini API kulcs szükséges a generáláshoz!");
+      toast.error("Anthropic API kulcs szükséges a generáláshoz!");
       return;
     }
 
@@ -395,18 +354,12 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
     while (attempt < maxRetries && !success) {
       attempt++;
       try {
-        const genAI = new GoogleGenerativeAI(activeApiKey);
-        const model = genAI.getGenerativeModel({
+        const responseText = await generateClaudeText({
+          apiKey: activeApiKey,
           model: selectedModel,
-          generationConfig: {
-            temperature: 0.5,
-            responseMimeType: "application/json",
-          },
-          systemInstruction: systemInstruction,
+          system: `${systemInstruction}\n\nFONTOS: Kizárólag érvényes JSON tömbbel válaszolj, bármilyen kísérőszöveg vagy markdown kódblokk nélkül.`,
+          prompt: promptText,
         });
-
-        const result = await model.generateContent(promptText);
-        const responseText = result.response.text();
         const parsedData = cleanAndParseJSON(responseText);
 
         if (!Array.isArray(parsedData) || parsedData.length === 0) {
@@ -454,7 +407,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
       } catch (err: any) {
         console.warn(`Attempt ${attempt} failed:`, err?.message || err);
         if (attempt >= maxRetries) {
-          toast.error(`Nem sikerült legenerálni a kérdéseket: ${err?.message || "Hiba"}`);
+          toast.error(`Nem sikerült legenerálni a kérdéseket: ${describeClaudeError(err)}`);
           triggerCooldown(3);
         }
       }
@@ -478,7 +431,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
     }
 
     if (!activeApiKey) {
-      toast.error("Gemini API kulcs megadása szükséges.");
+      toast.error("Anthropic API kulcs megadása szükséges.");
       return;
     }
 
@@ -538,17 +491,12 @@ Please synthesize everything into the ultimate Master Prompt. ${
           : ""
       }`;
 
-      const genAI = new GoogleGenerativeAI(activeApiKey);
-      const model = genAI.getGenerativeModel({
+      const outputText = await generateClaudeText({
+        apiKey: activeApiKey,
         model: selectedModel,
-        generationConfig: {
-          temperature: 0.5,
-        },
-        systemInstruction: systemInstruction,
+        system: systemInstruction,
+        prompt: synthesisPrompt,
       });
-
-      const result = await model.generateContent(synthesisPrompt);
-      const outputText = result.response.text();
 
       setFinalPrompt(outputText);
       setCurrentStep(3);
@@ -559,7 +507,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
       }, 150);
     } catch (err: any) {
       console.error("Synthesis failed:", err);
-      toast.error(`Nem sikerült előállítani a végleges promptot: ${err?.message || "Ismeretlen hiba"}`);
+      toast.error(`Nem sikerült előállítani a végleges promptot: ${describeClaudeError(err)}`);
       triggerCooldown(3);
     } finally {
       setIsSynthesizingPrompt(false);
@@ -860,7 +808,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
         {/* Footer */}
         <footer className="pt-8 pb-12 text-center text-xs text-zinc-500 border-t border-zinc-900/80 space-y-1">
           <p className="font-medium text-zinc-400">
-            AiPromptGenerator • Google Gemini REST API & Next.js App Router
+            AiPromptGenerator • Anthropic Claude API & Next.js App Router
           </p>
           <p className="text-[11px] text-zinc-600">
             Letisztult munkafolyamat, testreszabható rendszerpromptok és pontosító kérdések.

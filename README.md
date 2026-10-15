@@ -1,6 +1,6 @@
-# AI Prompt Generator (Next.js + Google Gemini API)
+# AI Prompt Generator (Next.js + Anthropic Claude API)
 
-Egy modern, egyoldalas AI Prompt Generator webalkalmazás, amely mélyreható magyar kérdéssor segítségével deríti fel a felhasználó céljait, majd a válaszok alapján egy csúcsminőségű, professzionális angol nyelvű Master Promptot szintetizál a Google Gemini API segítségével.
+Egy modern, egyoldalas AI Prompt Generator webalkalmazás, amely mélyreható magyar kérdéssor segítségével deríti fel a felhasználó céljait, majd a válaszok alapján egy csúcsminőségű, professzionális angol nyelvű Master Promptot szintetizál az Anthropic Claude API segítségével.
 
 Az **egész alkalmazáskód egyetlen fájlban** (`app/page.tsx`) található a könnyű hordozhatóság és másolhatóság érdekében.
 
@@ -9,13 +9,13 @@ Az **egész alkalmazáskód egyetlen fájlban** (`app/page.tsx`) található a k
 ## Főbb funkciók és működés
 
 1. **Dinamikus modell-lekérés API kulcs alapján**:
-   - Amikor megadod a Gemini API kulcsot (vagy az `.env.local` fájlból betöltődik), az app automatikusan lekéri a Google Generative Language REST API-n keresztül (`/v1beta/models`) a fiókodban elérhető szöveggeneráló Gemini modelleket.
+   - Amikor megadod az Anthropic API kulcsot (vagy az `.env.local` fájlból betöltődik), az app automatikusan lekéri az Anthropic Models API-n keresztül (`GET /v1/models`) a fiókodban elérhető Claude modelleket.
    - Kézi frissítő gomb (`RefreshCw` ikon) a modellek azonnali újratöltéséhez.
-   - Intelligens rendezés és fallback a standard modellekre (`gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-2.0-flash`).
+   - Intelligens rendezés és fallback a standard modellekre (`claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`).
 
 2. **Biztonság és hálózati szabályok**:
-   - **Szigorúan REST/HTTP hívások** (semmilyen WebSocket nincs használatban).
-   - API kulcs megadható a `.env.local` fájlban (`NEXT_PUBLIC_GEMINI_API_KEY`) vagy a felület tetején lévő modern input mezőben (kliensoldalon `localStorage`-ban tárolva).
+   - Az Anthropic API-t a hivatalos `@anthropic-ai/sdk` hívja közvetlenül a böngészőből (`dangerouslyAllowBrowser`), ezért a kulcs a felhasználó böngészőjében él – éles, nyilvános telepítéshez szerveroldali proxy (Next.js route) javasolt.
+   - API kulcs megadható a `.env.local` fájlban (`NEXT_PUBLIC_ANTHROPIC_API_KEY`) vagy a felület tetején lévő modern input mezőben (kliensoldalon `localStorage`-ban tárolva).
 
 3. **1. Lépés: Célleírás & Spamvédelem**:
    - Részletes szövegmező az elképzelés leírására.
@@ -55,7 +55,7 @@ npm install
 ### 2. Környezeti változók beállítása (opcionális)
 Hozz létre egy `.env.local` fájlt a gyökérkönyvtárban:
 ```bash
-NEXT_PUBLIC_GEMINI_API_KEY=a_te_gemini_api_kulcsod
+NEXT_PUBLIC_ANTHROPIC_API_KEY=a_te_anthropic_api_kulcsod
 ```
 *(Ha nem állítod be, a felületen megjelenő beviteli mezőben is bemásolhatod a kulcsot.)*
 

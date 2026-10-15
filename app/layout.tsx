@@ -3,8 +3,8 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-  title: "AI Prompt Generator | Master Prompt Engineering with Gemini",
-  description: "Next-generation AI prompt engineering workflow powered by Google Gemini REST API",
+  title: "AI Prompt Generator | Master Prompt Engineering with Claude",
+  description: "Next-generation AI prompt engineering workflow powered by the Anthropic Claude API",
 };
 
 export default function RootLayout({

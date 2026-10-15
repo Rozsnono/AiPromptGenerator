@@ -273,7 +273,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs font-mono text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-sky-500 transition-colors leading-relaxed resize-y"
                   />
                   <p className="text-[10px] text-zinc-500">
-                    Ezt az utasítást kapja a Gemini a válaszok összefoglalásakor és a mester prompt megírásakor.
+                    Ezt az utasítást kapja a Claude a válaszok összefoglalásakor és a mester prompt megírásakor.
                   </p>
                 </div>
 

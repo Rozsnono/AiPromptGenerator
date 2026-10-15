@@ -1,16 +1,15 @@
 import { ModelInfo, PresetItem, PromptConfig } from "./types";
 
 export const DEFAULT_MODELS: ModelInfo[] = [
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash (Gyors és ajánlott)" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro (Mély következtetés)" },
-  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+  { id: "claude-opus-5-5", name: "Claude Opus 5.5 (Legerősebb, ajánlott)" },
+  { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5 (Gyors és kiegyensúlyozott)" },
+  { id: "claude-haiku-5-5", name: "Claude Haiku 5.5 (Leggyorsabb)" },
 ];
 
 export const LOCAL_STORAGE_KEYS = {
-  API_KEY: "ai_prompt_gen_api_key",
+  API_KEY: "ai_prompt_gen_anthropic_api_key",
   MODEL: "ai_prompt_gen_model",
-  CACHED_MODELS: "ai_prompt_gen_cached_models",
+  CACHED_MODELS: "ai_prompt_gen_claude_models",
   USER_PROMPT: "ai_prompt_gen_input",
   PROMPT_CONFIG: "ai_prompt_gen_config",
   QUESTIONS: "ai_prompt_gen_questions",

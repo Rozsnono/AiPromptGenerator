@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className="text-xs text-zinc-400">
-              Interaktív kérdéssor &rarr; Professzionális Master Prompt Gemini alapokon
+              Interaktív kérdéssor &rarr; Professzionális Master Prompt Claude alapokon
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative flex items-center bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-1.5 focus-within:border-sky-500/60 transition-colors shadow-sm">
             <Cpu className="w-3.5 h-3.5 text-sky-400 mr-2 shrink-0" />
             <select
-              aria-label="Gemini Modell Kiválasztása"
+              aria-label="Claude Modell Kiválasztása"
               value={selectedModel}
               disabled={isLoadingModels}
               onChange={(e) => onSelectModel(e.target.value)}
@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <Key className="w-4 h-4 text-sky-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Google Gemini API Kulcs</h3>
+                  <h3 className="text-sm font-semibold text-white">Anthropic API Kulcs</h3>
                   <p className="text-xs text-zinc-400">Biztonságosan tárolva a böngésződben</p>
                 </div>
               </div>
@@ -162,14 +162,14 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-300">
-                Egyéni Gemini API kulcs:
+                Egyéni Anthropic API kulcs:
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={tempKey}
                   onChange={(e) => setTempKey(e.target.value)}
-                  placeholder="AIzaSy..."
+                  placeholder="sk-ant-..."
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-sky-500 font-mono pr-10"
                 />
                 <button
@@ -182,12 +182,12 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="flex items-center justify-between pt-1">
                 <a
-                  href="https://aistudio.google.com/app/apikey"
+                  href="https://console.anthropic.com/settings/keys"
                   target="_blank"
                   rel="noreferrer"
                   className="text-[11px] text-sky-400 hover:underline flex items-center gap-1"
                 >
-                  <span>Ingyenes API kulcs igénylése Google AI Studio-ban</span>
+                  <span>API kulcs igénylése az Anthropic Console-ban</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
                 {tempKey && (

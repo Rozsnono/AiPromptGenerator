@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { sendClaudeChat, describeClaudeError } from "../app/claude";
 import { QuestionItem, AnswersState } from "../app/types";
 import toast from "react-hot-toast";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -17,7 +17,7 @@ interface ChatModalProps {
 }
 
 interface ChatMessage {
-  role: "user" | "model";
+  role: "user" | "assistant";
   text: string;
 }
 
@@ -54,8 +54,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({
     setIsLoading(true);
 
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
       const qaContext = questions
         .map((q) => {
           const ans = answers[q.id];
@@ -81,28 +79,18 @@ Jelenlegi végső prompt:
 ${finalPrompt || "Még nincs legenerálva."}
 `;
 
-      const model = genAI.getGenerativeModel({
+      const responseText = await sendClaudeChat({
+        apiKey,
         model: selectedModel,
-        systemInstruction,
+        system: systemInstruction,
+        history: messages.map((m) => ({ role: m.role, text: m.text })),
+        userText,
       });
 
-      const history = messages.map((m) => ({
-        role: m.role,
-        parts: [{ text: m.text }],
-      }));
-
-      const chat = model.startChat({
-        history,
-        generationConfig: { temperature: 0.7 },
-      });
-
-      const result = await chat.sendMessage(userText);
-      const responseText = result.response.text();
-
-      setMessages((prev) => [...prev, { role: "model", text: responseText }]);
+      setMessages((prev) => [...prev, { role: "assistant", text: responseText }]);
     } catch (error: any) {
       console.error("Chat error:", error);
-      toast.error(`Hiba a chat során: ${error.message}`);
+      toast.error(`Hiba a chat során: ${describeClaudeError(error)}`);
     } finally {
       setIsLoading(false);
     }
