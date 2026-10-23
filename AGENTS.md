@@ -45,7 +45,8 @@ Anthropic Messages API (`POST /v1/messages`) és Models API (`GET /v1/models`) a
 
 ## Üzleti szabályok / formátumok
 - Kérdések: JSON tömb `{id, question, options:{A,B,C}, isNew?, newReason?}`; a D opció egyéni szabad szöveg. `isNew` csak a további (follow-up) körben kérhető a modelltől: olyan témát jelöl, ami a célban/korábbi válaszokban még nem szerepelt (a kérés a kódban egészül ki, nem a mentett rendszerpromptban).
-- Válasz: `{selectedOption, customText?, extraText?}`; `extraText` az A/B/C válasz kiegészítése, a promptokba `extensionSuffix`-szel kerül.
+- Válasz: `{selectedOption, selectedOptions?, customText?, extraText?}`. Az A/B/C opciók **többszörösen kijelölhetők** (kapcsoló; `selectedOptions` a teljes halmaz, `selectedOption` az első – régi, egyelemű mentésekkel kompatibilis). `extraText` a kijelölt válasz(ok) kiegészítése; a promptokba `describeSelectedOptions` / `extensionSuffix` kerül (`app/answers.ts`).
+- **Lezárt körök zárolása:** ha új kérdéseket kérnek, az addigi kör kérdései (és irányelve) csak olvashatók (`isQuestionLocked`, a `roundEnds` alapján; a handlerek is védenek). A `roundEnds` és az irányelvek localStorage-ban maradnak (`ai_prompt_gen_round_ends`, `ai_prompt_gen_guidelines`).
 - A végleges generálás előtt megerősítő ablak ("Biztos kész vagy?") jelenik meg.
 - A végső prompt célnyelve (hu/en), hangnem és programozói tudásszint konfigurálható.
 - Állapot teljes egészében `localStorage`-ban él (nincs szerver/DB).

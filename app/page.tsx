@@ -17,7 +17,7 @@ import {
   DEFAULT_PROMPT_CONFIG,
   PRESETS,
 } from "./constants";
-import { extensionSuffix } from "./answers";
+import { extensionSuffix, describeSelectedOptions, selectedLetters, isQuestionLocked } from "./answers";
 import { generateClaudeText, listClaudeModels, describeClaudeError } from "./claude";
 import { Header } from "../components/Header";
 import { Stepper } from "../components/Stepper";
@@ -114,6 +114,8 @@ export default function AIPromptGeneratorPage() {
       const storedQuestions = localStorage.getItem(LOCAL_STORAGE_KEYS.QUESTIONS);
       const storedAnswers = localStorage.getItem(LOCAL_STORAGE_KEYS.ANSWERS);
       const storedFinal = localStorage.getItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT);
+      const storedGuidelines = localStorage.getItem(LOCAL_STORAGE_KEYS.GUIDELINES);
+      const storedRoundEnds = localStorage.getItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
 
       if (storedKey) setCustomApiKey(storedKey);
       if (storedCachedModels) {
@@ -148,6 +150,18 @@ export default function AIPromptGeneratorPage() {
           if (parsed && typeof parsed === "object") setAnswers(parsed);
         } catch {}
       }
+      if (storedGuidelines) {
+        try {
+          const parsed = JSON.parse(storedGuidelines);
+          if (parsed && typeof parsed === "object") setGuidelines(parsed);
+        } catch {}
+      }
+      if (storedRoundEnds) {
+        try {
+          const parsed = JSON.parse(storedRoundEnds);
+          if (Array.isArray(parsed)) setRoundEnds(parsed.filter((n) => typeof n === "number"));
+        } catch {}
+      }
       if (storedFinal) {
         setFinalPrompt(storedFinal);
         setCurrentStep(3);
@@ -175,10 +189,12 @@ export default function AIPromptGeneratorPage() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.QUESTIONS, JSON.stringify(questions));
       localStorage.setItem(LOCAL_STORAGE_KEYS.ANSWERS, JSON.stringify(answers));
       localStorage.setItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT, finalPrompt);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.GUIDELINES, JSON.stringify(guidelines));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.ROUND_ENDS, JSON.stringify(roundEnds));
     } catch (err) {
       console.warn("LocalStorage write warning:", err);
     }
-  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt]);
+  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds]);
 
   // Cleanup timers
   useEffect(() => {
@@ -221,6 +237,8 @@ export default function AIPromptGeneratorPage() {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.QUESTIONS);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.ANSWERS);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.GUIDELINES);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
       } catch {}
       toast.success("Munkaterület sikeresen visszaállítva!");
     }
@@ -307,7 +325,7 @@ Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható ké
             if (userAns.selectedOption === "D") {
               ansText = `Egyéni válasz (D): "${userAns.customText || "Nincs kitöltve"}"`;
             } else {
-              ansText = `Opció ${userAns.selectedOption}: "${q.options[userAns.selectedOption as "A" | "B" | "C"]}"${extensionSuffix(userAns)}`;
+              ansText = `${describeSelectedOptions(q, userAns)}${extensionSuffix(userAns)}`;
             }
           }
           
@@ -470,9 +488,7 @@ ${
             if (userAns.selectedOption === "D") {
               selectedText = `Egyéni válasz (D): "${userAns.customText || "Nincs megadva"}"`;
             } else {
-              const optionLetter = userAns.selectedOption;
-              const optionContent = q.options[optionLetter as "A" | "B" | "C"];
-              selectedText = `Opció ${optionLetter}: "${optionContent}"${extensionSuffix(userAns)}`;
+              selectedText = `${describeSelectedOptions(q, userAns)}${extensionSuffix(userAns)}`;
             }
           }
           let roundGuideline = "";
@@ -526,19 +542,38 @@ Please synthesize everything into the ultimate Master Prompt. ${
   };
 
   // Option handlers
+  // A lezárt körök (amik után már új kérdéseket kértünk) kérdései zároltak: nem módosíthatók.
   const handleSelectOption = (questionId: number, optionKey: "A" | "B" | "C") => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: {
-        selectedOption: optionKey,
-        customText: prev[questionId]?.customText || "",
-        // A kiegészítés az adott opcióhoz tartozik: másik opciónál nem érvényes
-        extraText: prev[questionId]?.selectedOption === optionKey ? prev[questionId]?.extraText : undefined,
-      },
-    }));
+    if (isQuestionLocked(questionId, roundEnds)) return;
+    setAnswers((prev) => {
+      const current = prev[questionId];
+      const letters = selectedLetters(current);
+      // Kapcsolóként működik: újra kattintva a kijelölés megszűnik, több opció is kijelölhető
+      const nextLetters = letters.includes(optionKey)
+        ? letters.filter((l) => l !== optionKey)
+        : [...letters, optionKey];
+
+      if (nextLetters.length === 0) {
+        const rest = { ...prev };
+        delete rest[questionId];
+        return rest;
+      }
+      const sorted = (["A", "B", "C"] as const).filter((l) => nextLetters.includes(l));
+      return {
+        ...prev,
+        [questionId]: {
+          selectedOption: sorted[0],
+          selectedOptions: sorted,
+          customText: current?.customText || "",
+          // A kiegészítés a válasz egészére vonatkozik, ezért kijelöléskor megmarad
+          extraText: current?.selectedOption !== "D" ? current?.extraText : undefined,
+        },
+      };
+    });
   };
 
   const handleExtraTextChange = (questionId: number, text: string) => {
+    if (isQuestionLocked(questionId, roundEnds)) return;
     setAnswers((prev) => {
       const current = prev[questionId];
       // Kiegészíteni csak már kiválasztott A/B/C választ lehet
@@ -547,7 +582,13 @@ Please synthesize everything into the ultimate Master Prompt. ${
     });
   };
 
+  const handleGuidelineChange = (questionId: number, text: string) => {
+    if (isQuestionLocked(questionId, roundEnds)) return;
+    setGuidelines((prev) => ({ ...prev, [questionId]: text }));
+  };
+
   const handleCustomTextChange = (questionId: number, text: string) => {
+    if (isQuestionLocked(questionId, roundEnds)) return;
     setAnswers((prev) => ({
       ...prev,
       [questionId]: {
@@ -683,7 +724,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
               cooldownSeconds={cooldownSeconds}
               hasApiKey={Boolean(activeApiKey)}
               guidelines={guidelines}
-              onGuidelineChange={(qId, text) => setGuidelines(prev => ({ ...prev, [qId]: text }))}
+              onGuidelineChange={handleGuidelineChange}
               roundEnds={roundEnds}
               goalText={userInput}
               />
@@ -703,7 +744,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
               cooldownSeconds={cooldownSeconds}
               hasApiKey={Boolean(activeApiKey)}
               guidelines={guidelines}
-              onGuidelineChange={(qId, text) => setGuidelines(prev => ({ ...prev, [qId]: text }))}
+              onGuidelineChange={handleGuidelineChange}
               roundEnds={roundEnds}
               goalText={userInput}
               />

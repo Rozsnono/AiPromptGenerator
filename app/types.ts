@@ -15,7 +15,10 @@ export interface QuestionItem {
 export type SelectedOptionKey = "A" | "B" | "C" | "D";
 
 export interface UserAnswer {
+  /** Egyetlen válasz esetén ez a kulcs; több kijelölésnél az első (visszafelé kompatibilitás). */
   selectedOption: SelectedOptionKey;
+  /** Több kijelölt A/B/C opció (ha hiányzik, csak `selectedOption` számít). */
+  selectedOptions?: ("A" | "B" | "C")[];
   customText?: string;
   /** Kiegészítés a kiválasztott A/B/C válaszhoz ("ez, de bővítve"). */
   extraText?: string;

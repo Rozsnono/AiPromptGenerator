@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
-import { extensionSuffix } from "../app/answers";
+import { extensionSuffix, displayAnswerText } from "../app/answers";
 import { sendClaudeChat, describeClaudeError } from "../app/claude";
 import { QuestionItem, AnswersState } from "../app/types";
 import toast from "react-hot-toast";
@@ -59,9 +59,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
         .map((q) => {
           const ans = answers[q.id];
           const ansStr = ans
-            ? ans.selectedOption === "D"
-              ? ans.customText
-              : q.options[ans.selectedOption as "A" | "B" | "C"]
+            ? displayAnswerText(q, ans)
             : "Nincs válasz";
           return `K: ${q.question}\nV: ${ansStr}${extensionSuffix(ans)}`;
         })

@@ -16,6 +16,8 @@ export const LOCAL_STORAGE_KEYS = {
   ANSWERS: "ai_prompt_gen_answers",
   FINAL_PROMPT: "ai_prompt_gen_final_prompt",
   THEME: "ai_prompt_gen_theme",
+  GUIDELINES: "ai_prompt_gen_guidelines",
+  ROUND_ENDS: "ai_prompt_gen_round_ends",
 };
 
 export const DEFAULT_SYNTHESIS_SYSTEM_INSTRUCTION = `You are a World-Class Principal AI Prompt Engineer and System Architect.
