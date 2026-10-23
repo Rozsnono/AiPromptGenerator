@@ -158,22 +158,22 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                     </span>
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start justify-between gap-4">
-                        <h3 className="text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
-                        <div className="shrink-0 flex items-center gap-2">
+                        <h3 className="flex-1 min-w-0 text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
+                        <div className="shrink-0 flex items-center gap-1.5">
                         {closed && (
                           <button
                             type="button"
                             onClick={() => onToggleReopen(q.id)}
                             aria-pressed={reopened}
-                            title="Lezárt kör kérdésének újranyitása és módosítása"
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            title={reopened ? "Újratárgyalás – kattints a visszazáráshoz" : "Újratárgyalás – lezárt kör kérdésének újranyitása"}
+                            aria-label="Újratárgyalás"
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${
                               reopened
                                 ? "bg-amber-950/40 border-amber-500/60 text-amber-300"
                                 : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
                             }`}
                           >
-                            <RotateCw className="w-3.5 h-3.5" />
-                            <span>{reopened ? "Újratárgyalás ✓" : "Újratárgyalás"}</span>
+                            <RotateCw className="w-4 h-4" />
                           </button>
                         )}
                         <button
@@ -181,15 +181,15 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                           onClick={() => onToggleRevisit(q.id)}
                           disabled={locked}
                           aria-pressed={revisitIds.includes(q.id)}
-                          title="Jelöld meg, ha később szeretnél visszatérni erre a kérdésre"
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          title={revisitIds.includes(q.id) ? "Később visszatérek – kattints a jelölés törléséhez" : "Később visszatérek – jelöld meg a kérdést"}
+                          aria-label="Később visszatérek"
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                             revisitIds.includes(q.id)
                               ? "bg-sky-950/50 border-sky-500/60 text-sky-300"
                               : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
                           }`}
                         >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{revisitIds.includes(q.id) ? "Később visszatérek ✓" : "Később visszatérek"}</span>
+                          <Clock className="w-4 h-4" />
                         </button>
                         </div>
                       </div>
