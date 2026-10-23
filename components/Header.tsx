@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Sparkles, Cpu, RefreshCw, Key, Trash2, Check, Eye, EyeOff, X, ExternalLink } from "lucide-react";
 import { ModelInfo } from "../app/types";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   availableModels: ModelInfo[];
@@ -59,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-50">
                 AiPromptGenerator
               </h1>
               <span className="text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded bg-sky-950/60 text-sky-400 border border-sky-800/60">
@@ -108,13 +109,15 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={handleOpenKeyModal}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
               hasKey
-                ? "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white"
+                ? "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-zinc-50"
                 : "bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-950/60 animate-pulse"
             }`}
           >
             <Key className={`w-3.5 h-3.5 ${hasKey ? "text-emerald-400" : "text-amber-400"}`} />
             <span>{hasKey ? "API Kulcs" : "Kulcs szükséges"}</span>
           </button>
+
+          <ThemeToggle />
 
           {/* Reset button */}
           <button
@@ -138,14 +141,14 @@ export const Header: React.FC<HeaderProps> = ({
                   <Key className="w-4 h-4 text-sky-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Anthropic API Kulcs</h3>
+                  <h3 className="text-sm font-semibold text-zinc-50">Anthropic API Kulcs</h3>
                   <p className="text-xs text-zinc-400">Biztonságosan tárolva a böngésződben</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowKeyModal(false)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg"
+                className="text-zinc-400 hover:text-zinc-50 p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -170,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
                   value={tempKey}
                   onChange={(e) => setTempKey(e.target.value)}
                   placeholder="sk-ant-..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-sky-500 font-mono pr-10"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-50 placeholder-zinc-500 focus:outline-none focus:border-sky-500 font-mono pr-10"
                 />
                 <button
                   type="button"
@@ -206,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setShowKeyModal(false)}
-                className="px-3.5 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-white"
+                className="px-3.5 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-zinc-50"
               >
                 Mégse
               </button>

@@ -72,12 +72,12 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   return (
     <section className="relative pb-44">
       {/* Fix fejléc: haladás + generálás */}
-      <div className="sticky top-0 z-20 -mx-1 px-1 pt-2 pb-3 bg-[#090a0f]/90 backdrop-blur-md">
+      <div className="sticky top-0 z-20 -mx-1 px-1 pt-2 pb-3 bg-background/90 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs text-zinc-400">
               Megválaszolva{" "}
-              <strong className="font-mono text-white">
+              <strong className="font-mono text-zinc-50">
                 {answeredCount}/{totalCount}
               </strong>
             </div>
@@ -166,10 +166,10 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
               {answered && !isEditing && (
                 <div className="flex flex-col items-end gap-1.5">
                   <Bubble side="user">
-                    <div className="text-[11px] font-mono text-sky-200/70 mb-0.5">{ans!.selectedOption}</div>
+                    <div className="text-[11px] font-mono text-white/70 mb-0.5">{ans!.selectedOption}</div>
                     <div>{displayAnswerText(q, ans)}</div>
                     {ans!.selectedOption !== "D" && ans!.extraText?.trim() && (
-                      <div className="mt-1.5 pt-1.5 border-t border-sky-300/20 text-[13px] text-sky-50/90">
+                      <div className="mt-1.5 pt-1.5 border-t border-white/25 text-[13px] text-white/90">
                         + {ans!.extraText}
                       </div>
                     )}

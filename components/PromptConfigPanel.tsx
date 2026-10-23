@@ -98,7 +98,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
                   onClick={() => onChangeConfig({ ...config, targetLanguage: "en" })}
                   className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                     config.targetLanguage === "en"
-                      ? "bg-sky-950/50 border-sky-500/80 text-white shadow-sm ring-1 ring-sky-500/30"
+                      ? "bg-sky-950/50 border-sky-500/80 text-zinc-50 shadow-sm ring-1 ring-sky-500/30"
                       : "bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -114,7 +114,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
                   onClick={() => onChangeConfig({ ...config, targetLanguage: "hu" })}
                   className={`p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                     config.targetLanguage === "hu"
-                      ? "bg-sky-950/50 border-sky-500/80 text-white shadow-sm ring-1 ring-sky-500/30"
+                      ? "bg-sky-950/50 border-sky-500/80 text-zinc-50 shadow-sm ring-1 ring-sky-500/30"
                       : "bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -174,7 +174,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
                     onClick={() => onChangeConfig({ ...config, knowledgeLevel: opt.id })}
                     className={`p-2.5 rounded-xl border text-left transition-all ${
                       isSelected
-                        ? "bg-sky-950/40 border-sky-500/70 text-white shadow-sm ring-1 ring-sky-500/20"
+                        ? "bg-sky-950/40 border-sky-500/70 text-zinc-50 shadow-sm ring-1 ring-sky-500/20"
                         : "bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                     }`}
                   >
@@ -206,7 +206,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
                     onClick={() => onChangeConfig({ ...config, tone: tone.id })}
                     className={`p-2.5 rounded-xl border text-left transition-all ${
                       isSelected
-                        ? "bg-sky-950/40 border-sky-500/70 text-white shadow-sm ring-1 ring-sky-500/20"
+                        ? "bg-sky-950/40 border-sky-500/70 text-zinc-50 shadow-sm ring-1 ring-sky-500/20"
                         : "bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                     }`}
                   >
@@ -319,7 +319,7 @@ export const PromptConfigPanel: React.FC<PromptConfigPanelProps> = ({
               <button
                 type="button"
                 onClick={handleResetToDefaults}
-                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-zinc-800/60 transition-colors"
+                className="text-xs text-zinc-400 hover:text-zinc-50 flex items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-zinc-800/60 transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Minden prompt-beállítás visszaállítása alapértelmezettre</span>

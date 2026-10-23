@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Terminal, Copy, Check, Download, Edit3, Eye, Code, RotateCcw } from "lucide-react";
+import { Copy, Check, Download, Edit3, Eye, Code, RotateCcw, Bot } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import toast from "react-hot-toast";
 
@@ -61,154 +61,177 @@ export const FinalPromptView: React.FC<FinalPromptViewProps> = ({
     }
   };
 
+  const modes = [
+    { id: "preview", label: "Előnézet", icon: Eye },
+    { id: "raw", label: "Markdown", icon: Code },
+    { id: "edit", label: "Szerkesztés", icon: Edit3 },
+  ] as const;
+
+  const modeSwitch = (
+    <div className="inline-flex items-center bg-zinc-900/70 p-1 rounded-xl border border-zinc-800">
+      {modes.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => setViewMode(id)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            viewMode === id ? "bg-zinc-800 text-zinc-50 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+          }`}
+        >
+          <Icon className="w-3.5 h-3.5" />
+          {/* Telefonon csak az aktív mód felirata látszik, hogy ne legyen vízszintes görgetés */}
+          <span className={viewMode === id ? "" : "hidden sm:inline"}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const content = (
+    <div className="relative rounded-2xl border border-zinc-800 bg-zinc-950/80 overflow-hidden">
+      {viewMode === "preview" && (
+        <div className="p-5 sm:p-6 text-zinc-200 max-h-[70vh] overflow-y-auto leading-relaxed selection:bg-sky-500/30">
+          <MarkdownRenderer content={prompt} />
+        </div>
+      )}
+      {viewMode === "raw" && (
+        <pre className="p-5 sm:p-6 text-xs sm:text-sm font-mono text-zinc-300 whitespace-pre-wrap break-words leading-relaxed max-h-[70vh] overflow-y-auto selection:bg-sky-500/30">
+          {prompt}
+        </pre>
+      )}
+      {viewMode === "edit" && (
+        <textarea
+          rows={18}
+          value={prompt}
+          onChange={(e) => onUpdatePrompt(e.target.value)}
+          className="w-full bg-transparent p-5 sm:p-6 text-xs sm:text-sm font-mono text-zinc-200 focus:outline-none resize-y leading-relaxed"
+          placeholder="Itt módosíthatod közvetlenül a generált promptot..."
+        />
+      )}
+    </div>
+  );
+
+  const copyButtonClass = `px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border transition-all ${
+    copied
+      ? "bg-emerald-950/80 border-emerald-500 text-emerald-300"
+      : "bg-sky-500 hover:bg-sky-400 text-zinc-950 border-sky-400 shadow-sm shadow-sky-500/20"
+  }`;
+  const copyContent = copied ? (
+    <>
+      <Check className="w-4 h-4 text-emerald-400" />
+      <span>Másolva!</span>
+    </>
+  ) : (
+    <>
+      <Copy className="w-4 h-4" />
+      <span>Másolás</span>
+    </>
+  );
+
   return (
-    <motion.section
-      id="final-prompt-section"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-5 sm:p-6 backdrop-blur-md shadow-xl space-y-4"
-    >
-      {/* Header bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
-            <Terminal className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-semibold text-white">
-                Final Master Prompt
-              </h2>
+    <motion.section id="final-prompt-section" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+      {/* ======================= DESKTOP (lg+) ======================= */}
+      <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_300px] gap-12">
+        <div className="min-w-0 space-y-6">
+          <header className="pb-8 border-b border-zinc-800/70">
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-semibold tracking-tight text-zinc-50">Kész a Mester Prompt</h2>
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60">
                 {targetLanguage === "hu" ? "Magyar" : "English"}
               </span>
             </div>
-            <p className="text-xs text-zinc-400">
+            <p className="mt-2 text-base text-zinc-400 max-w-xl">
               Közvetlenül bemásolható Claude-ba, ChatGPT-be (GPT-4o), vagy Gemini-be.
             </p>
+          </header>
+          {modeSwitch}
+          {content}
+        </div>
+
+        <aside className="self-start sticky top-6 space-y-6">
+          <div className="space-y-2.5">
+            <button type="button" onClick={handleCopy} className={`w-full ${copyButtonClass}`}>
+              {copyContent}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border border-zinc-700 bg-zinc-900/90 text-zinc-200 hover:border-sky-500/50 hover:text-zinc-50 transition-all"
+            >
+              <Download className="w-4 h-4" />
+              <span>Letöltés (.md)</span>
+            </button>
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={isSynthesizing}
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border border-zinc-800 text-sky-400 hover:text-sky-300 hover:border-zinc-700 disabled:opacity-60 transition-all"
+            >
+              <RotateCcw className={`w-4 h-4 ${isSynthesizing ? "animate-spin" : ""}`} />
+              <span>Újragenerálás</span>
+            </button>
+          </div>
+
+          <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-5 space-y-3 text-sm">
+            <div className="text-xs uppercase tracking-wider text-zinc-500">Statisztika</div>
+            {[
+              ["Karakter", String(charCount)],
+              ["Szavak", String(wordCount)],
+              ["Becsült token", `~${estimatedTokens}`],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between">
+                <span className="text-zinc-500">{k}</span>
+                <span className="font-mono text-zinc-100">{v}</span>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-zinc-800/70 text-xs text-zinc-500 break-all">Modell: {modelName}</div>
+          </div>
+        </aside>
+      </div>
+
+      {/* ======================= TELEFON / TABLET (lg alatt) ======================= */}
+      <div className="lg:hidden pb-28 space-y-4">
+        <div className="flex items-start gap-2">
+          <div className="w-8 h-8 rounded-full bg-sky-950 border border-sky-800/60 flex items-center justify-center text-sky-400 shrink-0">
+            <Bot className="w-4 h-4" />
+          </div>
+          <div className="max-w-[85%] bg-zinc-900 border border-zinc-800 text-sm text-zinc-300 rounded-2xl rounded-tl-md px-3.5 py-2.5">
+            Kész a Mester Promptod! 🎉 ({targetLanguage === "hu" ? "Magyar" : "English"}, ~{estimatedTokens} token)
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Mode Switcher */}
-          <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-            <button
-              type="button"
-              onClick={() => setViewMode("preview")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                viewMode === "preview"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Előnézet</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("raw")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                viewMode === "raw"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Code className="w-3.5 h-3.5" />
-              <span>Nyers Markdown</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("edit")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                viewMode === "edit"
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Szerkesztés</span>
-            </button>
-          </div>
+        <div className="pl-10 space-y-3">
+          {modeSwitch}
+          {content}
+          <p className="text-[11px] font-mono text-zinc-500">
+            {charCount} karakter · {wordCount} szó · {modelName}
+          </p>
+        </div>
+      </div>
 
-          {/* Download button */}
+      {/* Alsó műveletsáv (telefon/tablet) */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-zinc-950/95 backdrop-blur-md border-t border-zinc-800 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex gap-2 max-w-4xl mx-auto">
+          <button type="button" onClick={handleCopy} className={`flex-1 ${copyButtonClass}`}>
+            {copyContent}
+          </button>
           <button
             type="button"
             onClick={handleDownload}
-            title="Letöltés .md fájlként"
-            className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-colors"
+            aria-label="Letöltés .md fájlként"
+            className="w-12 rounded-xl flex items-center justify-center border border-zinc-700 bg-zinc-900 text-zinc-200"
           >
             <Download className="w-4 h-4" />
           </button>
-
-          {/* Copy button */}
           <button
             type="button"
-            onClick={handleCopy}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 border transition-all ${
-              copied
-                ? "bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-sm"
-                : "bg-sky-500 hover:bg-sky-400 text-zinc-950 border-sky-400 font-bold shadow-sm"
-            }`}
+            onClick={onRegenerate}
+            disabled={isSynthesizing}
+            aria-label="Prompt újragenerálása"
+            className="w-12 rounded-xl flex items-center justify-center border border-zinc-800 bg-zinc-900 text-sky-400 disabled:opacity-60"
           >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>Másolva!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Másolás</span>
-              </>
-            )}
+            <RotateCcw className={`w-4 h-4 ${isSynthesizing ? "animate-spin" : ""}`} />
           </button>
         </div>
-      </div>
-
-      {/* Content Display */}
-      <div className="relative rounded-xl border border-zinc-800 bg-zinc-950/80 overflow-hidden">
-        {viewMode === "preview" && (
-          <div className="p-5 sm:p-6 text-zinc-200 max-h-[600px] overflow-y-auto leading-relaxed selection:bg-sky-500/30">
-            <MarkdownRenderer content={prompt} />
-          </div>
-        )}
-
-        {viewMode === "raw" && (
-          <pre className="p-5 sm:p-6 text-xs sm:text-sm font-mono text-zinc-300 whitespace-pre-wrap break-words leading-relaxed max-h-[600px] overflow-y-auto selection:bg-sky-500/30">
-            {prompt}
-          </pre>
-        )}
-
-        {viewMode === "edit" && (
-          <textarea
-            rows={18}
-            value={prompt}
-            onChange={(e) => onUpdatePrompt(e.target.value)}
-            className="w-full bg-transparent p-5 sm:p-6 text-xs sm:text-sm font-mono text-zinc-200 focus:outline-none resize-y leading-relaxed"
-            placeholder="Itt módosíthatod közvetlenül a generált promptot..."
-          />
-        )}
-      </div>
-
-      {/* Footer Stats & Regenerate Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-zinc-400 border-t border-zinc-800/60">
-        <div className="flex items-center gap-4 flex-wrap font-mono text-[11px]">
-          <span>Karakter: <strong className="text-zinc-200">{charCount}</strong></span>
-          <span>Szavak: <strong className="text-zinc-200">{wordCount}</strong></span>
-          <span>Becsült token: <strong className="text-sky-400">~{estimatedTokens}</strong></span>
-          <span className="hidden md:inline-block text-zinc-500">Modell: {modelName}</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={isSynthesizing}
-          className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1.5 self-start sm:self-auto hover:underline"
-        >
-          <RotateCcw className={`w-3.5 h-3.5 ${isSynthesizing ? "animate-spin" : ""}`} />
-          <span>Prompt újragenerálása az eddigi válaszokból</span>
-        </button>
       </div>
     </motion.section>
   );

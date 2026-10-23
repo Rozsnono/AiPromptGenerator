@@ -15,8 +15,6 @@ interface ChatModalProps {
   finalPrompt: string;
   questions: QuestionItem[];
   answers: AnswersState;
-  /** Mobil kérdés-nézetnél az alsó beviteli sáv fölé emeli a lebegő gombot. */
-  raised?: boolean;
 }
 
 interface ChatMessage {
@@ -31,7 +29,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({
   finalPrompt,
   questions,
   answers,
-  raised = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -112,7 +109,7 @@ ${finalPrompt || "Még nincs legenerálva."}
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed ${raised ? 'bottom-24 lg:bottom-6' : 'bottom-4 sm:bottom-6'} right-4 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all z-40 ${isOpen ? 'hidden' : ''}`}
+        className={`fixed bottom-24 lg:bottom-6 right-4 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all z-40 ${isOpen ? 'hidden' : ''}`}
         title="Prompt Asszisztens Chat"
       >
         <MessageCircle className="w-6 h-6" />
@@ -129,7 +126,7 @@ ${finalPrompt || "Még nincs legenerálva."}
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-zinc-400 hover:text-white p-1 rounded-md transition-colors"
+              className="text-zinc-400 hover:text-zinc-50 p-1 rounded-md transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -202,7 +199,7 @@ ${finalPrompt || "Még nincs legenerálva."}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Írj egy üzenetet..."
-                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-sky-500 transition-colors"
+                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-50 placeholder-zinc-500 focus:outline-none focus:border-sky-500 transition-colors"
               />
               <button
                 onClick={handleSend}

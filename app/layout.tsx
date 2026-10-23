@@ -7,22 +7,29 @@ export const metadata: Metadata = {
   description: "Next-generation AI prompt engineering workflow powered by the Anthropic Claude API",
 };
 
+/** Mentett téma (vagy a rendszerbeállítás) alkalmazása az első festés előtt. */
+const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem("ai_prompt_gen_theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}document.documentElement.setAttribute("data-theme",t)}catch(e){document.documentElement.setAttribute("data-theme","dark")}`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="hu" className="dark">
-      <body className="bg-[#090a0f] text-zinc-100 antialiased min-h-screen selection:bg-sky-500/30 selection:text-sky-200">
+    <html lang="hu" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Téma beállítása renderelés előtt, hogy ne villanjon */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="bg-background text-zinc-100 antialiased min-h-screen selection:bg-sky-500/30 selection:text-sky-200">
         <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
             style: {
-              background: "#12141d",
-              color: "#f4f4f6",
-              border: "1px solid #27272a",
+              background: "var(--toast-bg)",
+              color: "var(--foreground)",
+              border: "1px solid var(--toast-border)",
               borderRadius: "0.85rem",
               fontSize: "0.85rem",
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",

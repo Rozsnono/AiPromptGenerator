@@ -16,10 +16,16 @@ Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, framer-motion, reac
 - `app/types.ts` – közös típusok.
 - `app/answers.ts` – válasz-segédek (`isAnswered`, `displayAnswerText`, `extensionSuffix`).
 - `components/` – UI (Header, Stepper, PromptConfigPanel, FinalPromptView, ChatModal, MarkdownRenderer, ConfirmFinalModal).
-- Kérdés-lépés (2. lépés) **két külön nézet**, azonos propokkal (`QuestionsViewProps`), CSS breakpointtal váltva az `app/page.tsx`-ben:
-  - `components/QuestionsView.tsx` – desktop (`lg` felett): szerkesztői, tágas, jobb oldali fix oldalsávval.
-  - `components/QuestionsMobileChat.tsx` – telefon/tablet (`lg` alatt): chat-szerű, buborékokkal, alsó beviteli sávval.
-  Az 1. és 3. lépés még közös, reszponzív nézet.
+- Mindhárom lépés **két külön nézet**, CSS breakpointtal (`lg`) váltva:
+  - desktop (`lg` felett): szerkesztői, tágas elrendezés jobb oldali fix oldalsávval;
+  - telefon/tablet (`lg` alatt): chat-szerű nézet buborékokkal és alsó beviteli/műveletsávval.
+  - 1. lépés: `components/GoalView.tsx` (mindkét nézet egy komponensben).
+  - 2. lépés: `components/QuestionsView.tsx` (desktop) + `components/QuestionsMobileChat.tsx` (mobil), közös `QuestionsViewProps`.
+  - 3. lépés: `components/FinalPromptView.tsx` (mindkét nézet egy komponensben).
+- `components/ThemeToggle.tsx` + `app/layout.tsx` inline script – világos/sötét téma (`<html data-theme>`, localStorage kulcs: `ai_prompt_gen_theme`; alapértelmezés a rendszerbeállítás).
+
+## Téma-rendszer
+A komponensek `zinc`/`sky`/`indigo`/`emerald`/`amber`/`rose` Tailwind osztályokat használnak, de ezek a `tailwind.config.ts`-ben CSS változókra mutatnak (`--c-<család>-<árnyalat>`). Világos témában (`data-theme="light"`) a skálák megfordulnak, ezért **nem kell külön világos osztályokat írni**. Szabályok: fejlécek/szövegek `text-zinc-50` (ne `text-white`); `text-white` csak kitöltött kék (`bg-sky-600`) felületen; az oldalháttér `bg-background` (`--bg-rgb`).
 
 ## Indítás / build / teszt
 ```bash

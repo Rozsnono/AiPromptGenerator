@@ -55,7 +55,7 @@ export const ConfirmFinalModal: React.FC<ConfirmFinalModalProps> = ({
                 <div className="w-9 h-9 rounded-xl bg-sky-950/80 border border-sky-800/60 flex items-center justify-center text-sky-400">
                   <Sparkles className="w-4 h-4" />
                 </div>
-                <h3 id="confirm-final-title" className="text-base font-semibold text-white">
+                <h3 id="confirm-final-title" className="text-base font-semibold text-zinc-50">
                   Biztos kész vagy?
                 </h3>
               </div>
@@ -63,7 +63,7 @@ export const ConfirmFinalModal: React.FC<ConfirmFinalModalProps> = ({
                 type="button"
                 onClick={onCancel}
                 aria-label="Bezárás"
-                className="text-zinc-400 hover:text-white p-1 rounded-lg"
+                className="text-zinc-400 hover:text-zinc-50 p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -81,7 +81,7 @@ export const ConfirmFinalModal: React.FC<ConfirmFinalModalProps> = ({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500 hover:text-white transition-all"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500 hover:text-zinc-50 transition-all"
               >
                 Még nem, vissza a kérdésekhez
               </button>

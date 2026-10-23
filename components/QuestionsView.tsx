@@ -85,7 +85,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
       {/* ---------------- Fő oszlop: kérdések ---------------- */}
       <div className="min-w-0">
         <header className="pb-8 border-b border-zinc-800/70">
-          <h2 className="text-3xl font-semibold tracking-tight text-white">Pontosító kérdések</h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-zinc-50">Pontosító kérdések</h2>
           <p className="mt-2 text-base text-zinc-400 max-w-xl">
             Válassz egy lehetőséget, egészítsd ki, vagy írd le saját szavaiddal – minél pontosabb vagy,
             annál jobb lesz a végleges prompt.
@@ -146,7 +146,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                             onClick={() => onSelectOption(q.id, letter)}
                             className={`text-left p-4 rounded-2xl border transition-all group ${
                               isSelected
-                                ? "bg-sky-950/40 border-sky-400/80 text-white ring-1 ring-sky-400/30"
+                                ? "bg-sky-950/40 border-sky-400/80 text-zinc-50 ring-1 ring-sky-400/30"
                                 : "bg-zinc-900/40 border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900/70"
                             }`}
                           >
@@ -258,7 +258,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
           <div className="flex items-end justify-between">
             <div>
               <div className="text-xs uppercase tracking-wider text-zinc-500">Haladás</div>
-              <div className="text-3xl font-semibold text-white font-mono">
+              <div className="text-3xl font-semibold text-zinc-50 font-mono">
                 {answeredCount}
                 <span className="text-zinc-600"> / {totalCount}</span>
               </div>
@@ -291,7 +291,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   type="button"
                   onClick={() => setFilterMode(mode)}
                   className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all ${
-                    filterMode === mode ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"
+                    filterMode === mode ? "bg-zinc-800 text-zinc-50" : "text-zinc-500 hover:text-zinc-300"
                   }`}
                 >
                   {mode === "all" ? "Mind" : `Nyitott (${totalCount - answeredCount})`}
@@ -367,7 +367,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
             className={`w-full px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border transition-all ${
               busy || !hasApiKey
                 ? "bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed"
-                : "bg-zinc-900/90 border-zinc-700 text-zinc-200 hover:border-sky-500/50 hover:text-white"
+                : "bg-zinc-900/90 border-zinc-700 text-zinc-200 hover:border-sky-500/50 hover:text-zinc-50"
             }`}
           >
             {isGeneratingQuestions ? (

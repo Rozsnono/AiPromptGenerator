@@ -23,7 +23,7 @@ export const Stepper: React.FC<StepperProps> = ({
   const steps = [
     {
       step: 1,
-      title: "1. Cél & Rendszer Beállítás",
+      title: "Cél & beállítás",
       subtitle: "Prompt és AI direktívák",
       icon: Edit3,
       enabled: true,
@@ -31,7 +31,7 @@ export const Stepper: React.FC<StepperProps> = ({
     },
     {
       step: 2,
-      title: "2. Kérdéssor & Válaszok",
+      title: "Kérdések",
       subtitle: hasQuestions ? `${answeredCount}/${totalQuestions} megválaszolva` : "Még nincs kérdés",
       icon: HelpCircle,
       enabled: hasQuestions,
@@ -39,7 +39,7 @@ export const Stepper: React.FC<StepperProps> = ({
     },
     {
       step: 3,
-      title: "3. Mester Prompt",
+      title: "Mester Prompt",
       subtitle: hasFinalPrompt ? "Elkészült & használatra kész" : "Várakozás a generálásra",
       icon: Terminal,
       enabled: hasFinalPrompt,
@@ -49,49 +49,54 @@ export const Stepper: React.FC<StepperProps> = ({
 
   return (
     <nav aria-label="Progress Stepper" className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-1.5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl backdrop-blur-md">
-        {steps.map((s) => {
+      <ol className="flex items-center gap-2 sm:gap-3">
+        {steps.map((s, idx) => {
           const Icon = s.icon;
           const isActive = currentStep === s.step;
-          const isClickable = s.enabled;
 
           return (
-            <button
-              key={s.step}
-              type="button"
-              disabled={!isClickable}
-              onClick={() => onSelectStep(s.step)}
-              className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-xl text-left transition-all relative ${
-                isActive
-                  ? "bg-zinc-800/90 text-white border border-sky-500/40 shadow-sm shadow-sky-500/10"
-                  : isClickable
-                  ? "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 cursor-pointer"
-                  : "text-zinc-600 cursor-not-allowed opacity-60"
-              }`}
-            >
-              <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold transition-colors ${
-                  isActive
-                    ? "bg-sky-500 text-zinc-950 font-bold"
-                    : s.done
-                    ? "bg-emerald-950/80 text-emerald-400 border border-emerald-700/50"
-                    : "bg-zinc-800 text-zinc-500 border border-zinc-700/50"
-                }`}
-              >
-                {s.done ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs sm:text-sm font-semibold truncate leading-tight">
-                  {s.title}
-                </div>
-                <div className="text-[11px] text-zinc-500 truncate mt-0.5">
-                  {s.subtitle}
-                </div>
-              </div>
-            </button>
+            <React.Fragment key={s.step}>
+              <li className={isActive ? "min-w-0 shrink-0 sm:shrink" : "min-w-0"}>
+                <button
+                  type="button"
+                  disabled={!s.enabled}
+                  onClick={() => onSelectStep(s.step)}
+                  aria-current={isActive ? "step" : undefined}
+                  className={`flex items-center gap-2.5 py-1.5 rounded-xl text-left transition-all ${
+                    s.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold transition-colors ${
+                      isActive
+                        ? "bg-sky-500 text-zinc-950 font-bold shadow-sm shadow-sky-500/30"
+                        : s.done
+                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-700/50"
+                        : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+                    }`}
+                  >
+                    {s.done && !isActive ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                  </span>
+                  {/* Telefonon csak az aktív lépés címe látszik */}
+                  <span className={`min-w-0 ${isActive ? "block" : "hidden sm:block"}`}>
+                    <span
+                      className={`block text-sm font-semibold truncate leading-tight ${
+                        isActive ? "text-zinc-50" : "text-zinc-400"
+                      }`}
+                    >
+                      {s.title}
+                    </span>
+                    <span className="hidden sm:block text-[11px] text-zinc-500 truncate mt-0.5">{s.subtitle}</span>
+                  </span>
+                </button>
+              </li>
+              {idx < steps.length - 1 && (
+                <li aria-hidden className="flex-1 h-px bg-zinc-800 min-w-[12px]" />
+              )}
+            </React.Fragment>
           );
         })}
-      </div>
+      </ol>
     </nav>
   );
 };

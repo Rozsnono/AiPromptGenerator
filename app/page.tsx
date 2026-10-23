@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, RotateCcw, HelpCircle, Layers, Lightbulb } from "lucide-react";
 
 import {
   QuestionItem,
@@ -23,6 +22,7 @@ import { generateClaudeText, listClaudeModels, describeClaudeError } from "./cla
 import { Header } from "../components/Header";
 import { Stepper } from "../components/Stepper";
 import { PromptConfigPanel } from "../components/PromptConfigPanel";
+import { GoalView } from "../components/GoalView";
 import { QuestionsView } from "../components/QuestionsView";
 import { QuestionsMobileChat } from "../components/QuestionsMobileChat";
 import { FinalPromptView } from "../components/FinalPromptView";
@@ -579,7 +579,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#090a0f] flex items-center justify-center text-zinc-400">
+      <div className="min-h-screen bg-background flex items-center justify-center text-zinc-400">
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-medium">AiPromptGenerator betöltése...</span>
@@ -598,12 +598,12 @@ Please synthesize everything into the ultimate Master Prompt. ${
   }).length;
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 selection:bg-sky-500/30 selection:text-sky-200">
+    <div className="min-h-screen bg-background text-zinc-100 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 selection:bg-sky-500/30 selection:text-sky-200">
       {/* Subtle ambient light accents */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-sky-500/5 blur-[120px] pointer-events-none rounded-full" />
       <div className="fixed top-40 right-10 w-[450px] h-[250px] bg-indigo-500/5 blur-[130px] pointer-events-none rounded-full" />
 
-      <div className={`w-full z-10 space-y-6 ${currentStep === 2 ? "max-w-4xl lg:max-w-6xl" : "max-w-4xl"}`}>
+      <div className="w-full max-w-4xl lg:max-w-6xl z-10 space-y-6">
         {/* Header */}
         <Header
           availableModels={availableModels}
@@ -642,141 +642,20 @@ Please synthesize everything into the ultimate Master Prompt. ${
             STEP 1: GOAL DEFINITION & PROMPT SETUP
         ========================================================================= */}
         {currentStep === 1 && (
-          <motion.section
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            className="space-y-6"
-          >
-            {/* Main Goal Card */}
-            <div className="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-5 sm:p-6 backdrop-blur-md shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex items-center justify-center w-7 h-7 rounded-xl bg-sky-500/20 text-sky-300 font-bold text-xs border border-sky-500/40">
-                    1
-                  </span>
-                  <h2 className="text-base sm:text-lg font-semibold text-white">
-                    Kiinduló Cél vagy Prompt Leírása
-                  </h2>
-                </div>
-                <span className="text-xs text-zinc-500 font-mono">1. Lépés a 3-ból</span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-zinc-400">
-                Írd le, hogy pontosan mit szeretnél elérni az AI modellel (pl. Next.js webalkalmazás terv, konverziós SaaS landing page, kód refaktorálás, vagy marketing kampány).
-              </p>
-
-              {/* Quick Presets */}
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-400">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Gyors sablonok (1-kattintásos indítás):</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => handleApplyPreset(preset)}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800 hover:border-sky-500/50 hover:bg-zinc-800/50 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
-                    >
-                      <span className="text-[10px] font-mono text-sky-400 font-medium">[{preset.badge}]</span>
-                      <span>{preset.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mode Selection */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 p-1.5 bg-zinc-950/50 border border-zinc-800 rounded-xl w-full sm:w-fit mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEnhancing(false)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    !isEnhancing
-                      ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  Új prompt létrehozása
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEnhancing(true)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isEnhancing
-                      ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  Meglévő prompt átírása
-                </button>
-              </div>
-
-              {/* Textarea */}
-              <div className="relative pt-2">
-                <textarea
-                  rows={5}
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isEnhancing ? "Másold be ide a meglévő promptodat, amit javítani szeretnél..." : "e.g. Egy modern, konverzió-optimalizált landing page-et szeretnék készíteni egy B2B SaaS szoftverhez..."}
-                  className="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl p-4 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/40 transition-all resize-y leading-relaxed"
-                />
-                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1.5 px-1 font-mono">
-                  <span>{userInput.length} karakter</span>
-                  <span className="hidden sm:inline">Tipp: ⌘ + Enter a gyors indításhoz</span>
-                </div>
-              </div>
-
-              {/* Advanced Prompt & System Instructions Panel */}
-              <div className="pt-2">
-                <PromptConfigPanel
-                  config={promptConfig}
-                  onChangeConfig={(newCfg) => setPromptConfig(newCfg)}
-                />
-              </div>
-
-              {/* Action button */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-zinc-800/70">
-                <div className="text-xs text-zinc-500 flex items-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
-                  <span>
-                    A kérdések {promptConfig.questionsCount} db struktúrában, magyar nyelven fognak megjelenni.
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleGenerateQuestions(false)}
-                  disabled={!userInput.trim() || isGeneratingQuestions || isCooldownActive}
-                  className={`w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all shadow-md ${
-                    !userInput.trim() || isGeneratingQuestions || isCooldownActive
-                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50"
-                      : "bg-sky-500 hover:bg-sky-400 text-zinc-950 shadow-sky-500/20 hover:scale-[1.01]"
-                  }`}
-                >
-                  {isGeneratingQuestions ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
-                      <span>Kérdések generálása...</span>
-                    </>
-                  ) : isCooldownActive ? (
-                    <>
-                      <RotateCcw className="w-4 h-4 animate-spin text-zinc-500" />
-                      <span>Cooldown ({cooldownSeconds}s)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Kérdéssor Generálása</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </motion.section>
+          <GoalView
+            userInput={userInput}
+            onChangeUserInput={setUserInput}
+            isEnhancing={isEnhancing}
+            onChangeEnhancing={setIsEnhancing}
+            promptConfig={promptConfig}
+            onChangeConfig={setPromptConfig}
+            onApplyPreset={handleApplyPreset}
+            onGenerate={() => handleGenerateQuestions(false)}
+            onKeyDown={handleKeyDown}
+            isGenerating={isGeneratingQuestions}
+            isCooldownActive={isCooldownActive}
+            cooldownSeconds={cooldownSeconds}
+          />
         )}
 
         {/* =========================================================================
@@ -791,7 +670,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
             {/* Telefon/tablet: chat-szerű nézet; gép (lg+): kétoszlopos szerkesztői nézet */}
             <div className="lg:hidden">
               <QuestionsMobileChat
-                          questions={questions}
+                questions={questions}
               answers={answers}
               onSelectOption={handleSelectOption}
               onCustomTextChange={handleCustomTextChange}
@@ -811,7 +690,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
             </div>
             <div className="hidden lg:block">
               <QuestionsView
-                          questions={questions}
+                questions={questions}
               answers={answers}
               onSelectOption={handleSelectOption}
               onCustomTextChange={handleCustomTextChange}
@@ -871,7 +750,6 @@ Please synthesize everything into the ultimate Master Prompt. ${
           finalPrompt={finalPrompt}
           questions={questions}
           answers={answers}
-          raised={currentStep === 2}
         />
       )}
     </div>
