@@ -483,28 +483,28 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                 >
                   {idx + 1}
                   {/* Jobb felső sarok: kritikus / új téma / később */}
-                  <span className="absolute -top-1.5 -right-1.5 flex gap-0.5">
+                  <span className="absolute -top-1 -right-1 flex gap-px">
                     {q.isCritical && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] leading-none flex items-center justify-center font-bold">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 text-white text-[7px] leading-none flex items-center justify-center font-bold">
                         !
                       </span>
                     )}
-                    {q.isNew && <span className="w-3.5 h-3.5 rounded-full bg-amber-400 border border-zinc-950" />}
+                    {q.isNew && <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-zinc-950" />}
                     {revisit && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-sky-500 text-white flex items-center justify-center">
-                        <Clock className="w-2.5 h-2.5" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-sky-500 text-white flex items-center justify-center">
+                        <Clock className="w-1.5 h-1.5" />
                       </span>
                     )}
                   </span>
                   {reopenedQ && (
-                    <span className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
-                      <RotateCw className="w-2.5 h-2.5" />
+                    <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                      <RotateCw className="w-1.5 h-1.5" />
                     </span>
                   )}
                   {/* Bal alsó sarok: egyéni / több válasz */}
                   {(custom || multi) && (
                     <span
-                      className={`absolute -bottom-1.5 -left-1.5 min-w-[14px] h-3.5 px-0.5 rounded text-[9px] leading-none flex items-center justify-center font-bold ${
+                      className={`absolute -bottom-1 -left-1 min-w-[10px] h-2.5 px-px rounded-sm text-[7px] leading-none flex items-center justify-center font-bold ${
                         custom ? "bg-indigo-500 text-white" : "bg-emerald-500 text-white"
                       }`}
                     >
@@ -520,46 +520,46 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
           <ul className="space-y-1 text-[11px] text-zinc-500">
             {criticalCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-bold">!</span>
+                <span className="w-3 h-3 rounded-full bg-rose-500 text-white text-[8px] flex items-center justify-center font-bold">!</span>
                 kritikus téma ({criticalCount})
               </li>
             )}
             {newCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-full bg-amber-400" /> új téma ({newCount})
+                <span className="w-3 h-3 rounded-full bg-amber-400" /> új téma ({newCount})
               </li>
             )}
             {revisitCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-full bg-sky-500 text-white flex items-center justify-center">
-                  <Clock className="w-2.5 h-2.5" />
+                <span className="w-3 h-3 rounded-full bg-sky-500 text-white flex items-center justify-center">
+                  <Clock className="w-2 h-2" />
                 </span>
                 később visszatérek ({revisitCount})
               </li>
             )}
             {reopenedCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
-                  <RotateCw className="w-2.5 h-2.5" />
+                <span className="w-3 h-3 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                  <RotateCw className="w-2 h-2" />
                 </span>
                 újratárgyalás alatt ({reopenedCount})
               </li>
             )}
             {droppedCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 rounded border border-dashed border-zinc-500" />
+                <span className="w-3 h-3 rounded border border-dashed border-zinc-500" />
                 elvetett ötlet ({droppedCount})
               </li>
             )}
             {customCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="min-w-[14px] h-3.5 px-0.5 rounded bg-indigo-500 text-white text-[9px] flex items-center justify-center font-bold">D</span>
+                <span className="min-w-[12px] h-3 px-0.5 rounded bg-indigo-500 text-white text-[8px] flex items-center justify-center font-bold">D</span>
                 egyéni válasz ({customCount})
               </li>
             )}
             {multiCount > 0 && (
               <li className="flex items-center gap-1.5">
-                <span className="min-w-[14px] h-3.5 px-0.5 rounded bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold">×2</span>
+                <span className="min-w-[12px] h-3 px-0.5 rounded bg-emerald-500 text-white text-[8px] flex items-center justify-center font-bold">×2</span>
                 több kijelölt válasz ({multiCount})
               </li>
             )}
@@ -609,7 +609,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
           >
             {isGeneratingQuestions ? (
               <>
-                <div className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-3 h-3 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
                 <span>Újabb kérdések...</span>
               </>
             ) : (
