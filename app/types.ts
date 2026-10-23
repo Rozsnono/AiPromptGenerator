@@ -10,6 +10,10 @@ export interface QuestionItem {
   isNew?: boolean;
   /** Rövid magyar indoklás, miért új a téma (csak isNew esetén). */
   newReason?: string;
+  /** A modell szerint kritikus téma: a válasz erősen befolyásolja a végleges promptot. */
+  isCritical?: boolean;
+  /** Rövid magyar indoklás, miért kritikus (csak isCritical esetén). */
+  criticalReason?: string;
 }
 
 export type SelectedOptionKey = "A" | "B" | "C" | "D";

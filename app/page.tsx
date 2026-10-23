@@ -50,6 +50,8 @@ export default function AIPromptGeneratorPage() {
   const [finalPrompt, setFinalPrompt] = useState<string>("");
   const [guidelines, setGuidelines] = useState<Record<number, string>>({});
   const [roundEnds, setRoundEnds] = useState<number[]>([]);
+  // "Később térjünk vissza rá" jelölésű kérdések azonosítói
+  const [revisitIds, setRevisitIds] = useState<number[]>([]);
 
   // Async & cooldown states
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
@@ -116,6 +118,7 @@ export default function AIPromptGeneratorPage() {
       const storedFinal = localStorage.getItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT);
       const storedGuidelines = localStorage.getItem(LOCAL_STORAGE_KEYS.GUIDELINES);
       const storedRoundEnds = localStorage.getItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
+      const storedRevisit = localStorage.getItem(LOCAL_STORAGE_KEYS.REVISIT);
 
       if (storedKey) setCustomApiKey(storedKey);
       if (storedCachedModels) {
@@ -162,6 +165,12 @@ export default function AIPromptGeneratorPage() {
           if (Array.isArray(parsed)) setRoundEnds(parsed.filter((n) => typeof n === "number"));
         } catch {}
       }
+      if (storedRevisit) {
+        try {
+          const parsed = JSON.parse(storedRevisit);
+          if (Array.isArray(parsed)) setRevisitIds(parsed.filter((n) => typeof n === "number"));
+        } catch {}
+      }
       if (storedFinal) {
         setFinalPrompt(storedFinal);
         setCurrentStep(3);
@@ -191,10 +200,11 @@ export default function AIPromptGeneratorPage() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT, finalPrompt);
       localStorage.setItem(LOCAL_STORAGE_KEYS.GUIDELINES, JSON.stringify(guidelines));
       localStorage.setItem(LOCAL_STORAGE_KEYS.ROUND_ENDS, JSON.stringify(roundEnds));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.REVISIT, JSON.stringify(revisitIds));
     } catch (err) {
       console.warn("LocalStorage write warning:", err);
     }
-  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds]);
+  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds, revisitIds]);
 
   // Cleanup timers
   useEffect(() => {
@@ -230,6 +240,7 @@ export default function AIPromptGeneratorPage() {
       setFinalPrompt("");
       setGuidelines({});
       setRoundEnds([]);
+      setRevisitIds([]);
       setIsEnhancing(false);
       setCurrentStep(1);
       try {
@@ -239,6 +250,7 @@ export default function AIPromptGeneratorPage() {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.FINAL_PROMPT);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.GUIDELINES);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.REVISIT);
       } catch {}
       toast.success("Munkaterület sikeresen visszaállítva!");
     }
@@ -377,7 +389,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
         const responseText = await generateClaudeText({
           apiKey: activeApiKey,
           model: selectedModel,
-          system: `${systemInstruction}\n\nFONTOS: Kizárólag érvényes JSON tömbbel válaszolj, bármilyen kísérőszöveg vagy markdown kódblokk nélkül.${
+          system: `${systemInstruction}\n\nFONTOS: Kizárólag érvényes JSON tömbbel válaszolj, bármilyen kísérőszöveg vagy markdown kódblokk nélkül.\nHa egy kérdés kritikus téma, vagyis a válasza erősen meghatározza a végleges prompt minőségét, add hozzá az objektumhoz: "isCritical": true és "criticalReason": "egy rövid magyar mondat, miért kritikus". Csak a valóban kritikus kérdéseket jelöld.${
             isFollowUp && questions.length > 0
               ? `\nHa egy kérdés olyan témát nyit meg, ami az eredeti célban és az eddigi kérdés-válaszokban még NEM szerepelt, add hozzá az objektumhoz: "isNew": true és "newReason": "egy rövid magyar mondat, miért új téma". Egyébként ezeket a mezőket hagyd el.`
               : ""
@@ -402,6 +414,12 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
               B: String(item.options.B),
               C: String(item.options.C),
             },
+            ...(item.isCritical === true
+              ? {
+                  isCritical: true,
+                  criticalReason: typeof item.criticalReason === "string" ? item.criticalReason : undefined,
+                }
+              : {}),
             ...(item.isNew === true
               ? { isNew: true, newReason: typeof item.newReason === "string" ? item.newReason : undefined }
               : {}),
@@ -414,6 +432,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
           setFinalPrompt("");
           setGuidelines({});
           setRoundEnds([]);
+      setRevisitIds([]);
           setCurrentStep(2);
           toast.success(`${validatedQuestions.length} kérdés sikeresen előállítva!`);
         } else {
@@ -427,6 +446,8 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
             options: q.options,
             isNew: q.isNew,
             newReason: q.newReason,
+            isCritical: q.isCritical,
+            criticalReason: q.criticalReason,
           }));
           setQuestions((prev) => [...prev, ...renumbered]);
           toast.success(`${renumbered.length} új kérdés hozzáadva!`);
@@ -495,7 +516,7 @@ ${
           if (guidelines[q.id]) {
             roundGuideline = `\n[User's Custom Guideline inserted here: "${guidelines[q.id]}"]`;
           }
-          return `Kérdés ${idx + 1}: "${q.question}"\nVálasz: ${selectedText}${roundGuideline}`;
+          return `Kérdés ${idx + 1}${q.isCritical ? " [KRITIKUS TÉMA – kiemelten kezeld]" : ""}: "${q.question}"\nVálasz: ${selectedText}${roundGuideline}`;
         })
         .join("\n\n");
 
@@ -580,6 +601,12 @@ Please synthesize everything into the ultimate Master Prompt. ${
       if (!current || current.selectedOption === "D") return prev;
       return { ...prev, [questionId]: { ...current, extraText: text } };
     });
+  };
+
+  const handleToggleRevisit = (questionId: number) => {
+    setRevisitIds((prev) =>
+      prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
+    );
   };
 
   const handleGuidelineChange = (questionId: number, text: string) => {
@@ -725,6 +752,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               hasApiKey={Boolean(activeApiKey)}
               guidelines={guidelines}
               onGuidelineChange={handleGuidelineChange}
+              revisitIds={revisitIds}
+              onToggleRevisit={handleToggleRevisit}
               roundEnds={roundEnds}
               goalText={userInput}
               />
@@ -745,6 +774,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               hasApiKey={Boolean(activeApiKey)}
               guidelines={guidelines}
               onGuidelineChange={handleGuidelineChange}
+              revisitIds={revisitIds}
+              onToggleRevisit={handleToggleRevisit}
               roundEnds={roundEnds}
               goalText={userInput}
               />

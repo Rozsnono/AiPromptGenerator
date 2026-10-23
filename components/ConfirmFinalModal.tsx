@@ -8,6 +8,10 @@ interface ConfirmFinalModalProps {
   open: boolean;
   answeredCount: number;
   totalCount: number;
+  /** Megválaszolatlan kritikus témák száma (figyelmeztetéshez). */
+  criticalUnanswered?: number;
+  /** "Később visszatérek" jelölésű kérdések száma. */
+  revisitCount?: number;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -17,6 +21,8 @@ export const ConfirmFinalModal: React.FC<ConfirmFinalModalProps> = ({
   open,
   answeredCount,
   totalCount,
+  criticalUnanswered = 0,
+  revisitCount = 0,
   onCancel,
   onConfirm,
 }) => {
@@ -76,6 +82,17 @@ export const ConfirmFinalModal: React.FC<ConfirmFinalModalProps> = ({
                 : " Minden kérdést megválaszoltál."}{" "}
               Biztosan elindítod a végleges Mester Prompt generálását?
             </p>
+
+            {criticalUnanswered > 0 && (
+              <p className="text-sm text-rose-300 bg-rose-950/30 border border-rose-800/50 rounded-xl px-3 py-2">
+                Figyelem: {criticalUnanswered} kritikus témájú kérdés még megválaszolatlan!
+              </p>
+            )}
+            {revisitCount > 0 && (
+              <p className="text-sm text-sky-300 bg-sky-950/30 border border-sky-800/50 rounded-xl px-3 py-2">
+                {revisitCount} kérdést későbbre jelöltél meg.
+              </p>
+            )}
 
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
               <button

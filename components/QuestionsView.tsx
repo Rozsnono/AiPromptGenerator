@@ -3,7 +3,13 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { QuestionItem, AnswersState } from "../app/types";
-import { isAnswered, selectedLetters, isQuestionLocked } from "../app/answers";
+import {
+  isAnswered,
+  selectedLetters,
+  isQuestionLocked,
+  isCustomAnswer,
+  isMultiAnswer,
+} from "../app/answers";
 import {
   Sparkles,
   Send,
@@ -15,6 +21,8 @@ import {
   Flag,
   Lock,
   Check,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
 
@@ -36,6 +44,9 @@ export interface QuestionsViewProps {
   guidelines: Record<number, string>;
   onGuidelineChange: (questionId: number, val: string) => void;
   roundEnds: number[];
+  /** "Később visszatérek" jelölésű kérdések azonosítói. */
+  revisitIds: number[];
+  onToggleRevisit: (questionId: number) => void;
 }
 
 /**
@@ -59,17 +70,29 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   guidelines,
   onGuidelineChange,
   roundEnds,
+  revisitIds,
+  onToggleRevisit,
 }) => {
-  const [filterMode, setFilterMode] = useState<"all" | "unanswered">("all");
+  const [filterMode, setFilterMode] = useState<"all" | "unanswered" | "revisit">("all");
   const [showConfirm, setShowConfirm] = useState(false);
 
   const totalCount = questions.length;
   const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
   const progressPercent = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
 
-  const filteredQuestions = questions.filter(
-    (q) => filterMode === "all" || !isAnswered(answers[q.id])
-  );
+  const filteredQuestions = questions.filter((q) => {
+    if (filterMode === "unanswered") return !isAnswered(answers[q.id]);
+    if (filterMode === "revisit") return revisitIds.includes(q.id);
+    return true;
+  });
+
+  // Számlálók az oldalsáv jelmagyarázatához és a megerősítő ablakhoz
+  const criticalCount = questions.filter((q) => q.isCritical).length;
+  const newCount = questions.filter((q) => q.isNew).length;
+  const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
+  const customCount = questions.filter((q) => isCustomAnswer(answers[q.id])).length;
+  const multiCount = questions.filter((q) => isMultiAnswer(answers[q.id])).length;
+  const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
 
   const busy = isGeneratingQuestions || isSynthesizingPrompt || isCooldownActive;
   const canSynthesize = hasApiKey && !busy;
@@ -124,11 +147,37 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                       {String(actualIndex + 1).padStart(2, "0")}
                     </span>
                     <div className="flex-1 min-w-0 space-y-2">
-                      <h3 className="text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
+                        <button
+                          type="button"
+                          onClick={() => onToggleRevisit(q.id)}
+                          disabled={locked}
+                          aria-pressed={revisitIds.includes(q.id)}
+                          title="Jelöld meg, ha később szeretnél visszatérni erre a kérdésre"
+                          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            revisitIds.includes(q.id)
+                              ? "bg-sky-950/50 border-sky-500/60 text-sky-300"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                          }`}
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{revisitIds.includes(q.id) ? "Később visszatérek ✓" : "Később visszatérek"}</span>
+                        </button>
+                      </div>
                       {locked && (
                         <div className="inline-flex items-center gap-1.5 mr-2 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5">
                           <Lock className="w-3.5 h-3.5" />
                           <span>Lezárt kör – nem módosítható</span>
+                        </div>
+                      )}
+                      {q.isCritical && (
+                        <div className="inline-flex items-start gap-1.5 mr-2 text-xs text-rose-300 bg-rose-950/30 border border-rose-800/50 rounded-lg px-2.5 py-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="font-semibold">Kritikus téma</strong>
+                            {q.criticalReason ? ` – ${q.criticalReason}` : " – ez erősen befolyásolja a végleges promptot."}
+                          </span>
                         </div>
                       )}
                       {q.isNew && (
@@ -313,7 +362,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wider text-zinc-500">Kérdések</span>
             <div className="flex items-center gap-1 bg-zinc-950/80 p-0.5 rounded-lg border border-zinc-800">
-              {(["all", "unanswered"] as const).map((mode) => (
+              {(["all", "unanswered", "revisit"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -322,39 +371,106 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                     filterMode === mode ? "bg-zinc-800 text-zinc-50" : "text-zinc-500 hover:text-zinc-300"
                   }`}
                 >
-                  {mode === "all" ? "Mind" : `Nyitott (${totalCount - answeredCount})`}
+                  {mode === "all"
+                    ? "Mind"
+                    : mode === "unanswered"
+                    ? `Nyitott (${totalCount - answeredCount})`
+                    : `Később (${revisitCount})`}
                 </button>
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {questions.map((q, idx) => {
               const done = isAnswered(answers[q.id]);
+              const revisit = revisitIds.includes(q.id);
+              const custom = isCustomAnswer(answers[q.id]);
+              const multi = isMultiAnswer(answers[q.id]);
+              const hints = [
+                q.isCritical && "kritikus téma",
+                q.isNew && "új téma",
+                revisit && "később visszatérek",
+                custom && "egyéni válasz",
+                multi && "több kijelölt válasz",
+              ].filter(Boolean);
               return (
                 <button
                   key={q.id}
                   type="button"
                   onClick={() => scrollToQuestion(q.id)}
-                  title={q.isNew ? `Új téma: ${q.question}` : q.question}
-                  className={`relative w-8 h-8 rounded-lg text-xs font-mono font-semibold border transition-all ${
-                    done
-                      ? "bg-sky-500/15 border-sky-500/40 text-sky-300"
-                      : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600"
-                  }`}
+                  title={`${q.question}${hints.length ? ` (${hints.join(", ")})` : ""}`}
+                  className={`relative w-10 h-10 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                    q.isCritical
+                      ? "border-rose-500/60"
+                      : done
+                      ? "border-sky-500/40"
+                      : "border-zinc-800 hover:border-zinc-600"
+                  } ${done ? "bg-sky-500/15 text-sky-300" : "bg-zinc-900 text-zinc-500"}`}
                 >
                   {idx + 1}
-                  {q.isNew && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-zinc-950" />
+                  {/* Jobb felső sarok: kritikus / új téma / később */}
+                  <span className="absolute -top-1.5 -right-1.5 flex gap-0.5">
+                    {q.isCritical && (
+                      <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] leading-none flex items-center justify-center font-bold">
+                        !
+                      </span>
+                    )}
+                    {q.isNew && <span className="w-3.5 h-3.5 rounded-full bg-amber-400 border border-zinc-950" />}
+                    {revisit && (
+                      <span className="w-3.5 h-3.5 rounded-full bg-sky-500 text-white flex items-center justify-center">
+                        <Clock className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </span>
+                  {/* Bal alsó sarok: egyéni / több válasz */}
+                  {(custom || multi) && (
+                    <span
+                      className={`absolute -bottom-1.5 -left-1.5 min-w-[14px] h-3.5 px-0.5 rounded text-[9px] leading-none flex items-center justify-center font-bold ${
+                        custom ? "bg-indigo-500 text-white" : "bg-emerald-500 text-white"
+                      }`}
+                    >
+                      {custom ? "D" : `×${selectedLetters(answers[q.id]).length}`}
+                    </span>
                   )}
                 </button>
               );
             })}
           </div>
-          {questions.some((q) => q.isNew) && (
-            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-              <span className="w-2 h-2 rounded-full bg-amber-400" /> új téma
-            </div>
-          )}
+
+          {/* Jelmagyarázat (csak a ténylegesen előforduló jelölések) */}
+          <ul className="space-y-1 text-[11px] text-zinc-500">
+            {criticalCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center font-bold">!</span>
+                kritikus téma ({criticalCount})
+              </li>
+            )}
+            {newCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-amber-400" /> új téma ({newCount})
+              </li>
+            )}
+            {revisitCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-sky-500 text-white flex items-center justify-center">
+                  <Clock className="w-2.5 h-2.5" />
+                </span>
+                később visszatérek ({revisitCount})
+              </li>
+            )}
+            {customCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="min-w-[14px] h-3.5 px-0.5 rounded bg-indigo-500 text-white text-[9px] flex items-center justify-center font-bold">D</span>
+                egyéni válasz ({customCount})
+              </li>
+            )}
+            {multiCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="min-w-[14px] h-3.5 px-0.5 rounded bg-emerald-500 text-white text-[9px] flex items-center justify-center font-bold">×2</span>
+                több kijelölt válasz ({multiCount})
+              </li>
+            )}
+          </ul>
         </div>
 
         {/* Műveletek */}
@@ -417,6 +533,8 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
         open={showConfirm}
         answeredCount={answeredCount}
         totalCount={totalCount}
+        criticalUnanswered={criticalUnanswered}
+        revisitCount={revisitCount}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => {
           setShowConfirm(false);

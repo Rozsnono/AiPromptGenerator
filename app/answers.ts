@@ -20,6 +20,11 @@ export function isAnswered(answer: UserAnswer | undefined): boolean {
   return true;
 }
 
+/** Egyéni (D) válasz, ténylegesen kitöltött szöveggel. */
+export function isCustomAnswer(answer: UserAnswer | undefined): boolean {
+  return answer?.selectedOption === "D" && Boolean(answer.customText && answer.customText.trim());
+}
+
 /** A kijelölt A/B/C betűk (egyéni D válasznál vagy válasz nélkül üres), ABC sorrendben. */
 export function selectedLetters(answer: UserAnswer | undefined): Letter[] {
   if (!answer || answer.selectedOption === "D") return [];
@@ -50,4 +55,9 @@ export function describeSelectedOptions(question: QuestionOptions, answer: UserA
  */
 export function isQuestionLocked(questionId: number, roundEnds: number[]): boolean {
   return roundEnds.length > 0 && questionId <= Math.max(...roundEnds);
+}
+
+/** Több A/B/C opció is ki van jelölve. */
+export function isMultiAnswer(answer: UserAnswer | undefined): boolean {
+  return selectedLetters(answer).length > 1;
 }

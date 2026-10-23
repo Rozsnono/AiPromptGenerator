@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check } from "lucide-react";
+import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check, AlertTriangle, Clock } from "lucide-react";
 import { QuestionsViewProps } from "./QuestionsView";
 import { isAnswered, displayAnswerText, selectedLetters, isQuestionLocked } from "../app/answers";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
@@ -29,6 +29,8 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   guidelines,
   onGuidelineChange,
   roundEnds,
+  revisitIds,
+  onToggleRevisit,
 }) => {
   const [composerText, setComposerText] = useState("");
   // Az a kérdés, aminek az opciói épp nyitva vannak (több opció is kijelölhető, "Tovább"-ig marad nyitva)
@@ -51,6 +53,14 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   // Amelyikre épp válaszolni lehet (nyitott, vagy az első megválaszolatlan); zárolt kérdésre nem
   const candidate = openIndex !== -1 ? questions[openIndex] : questions[activeIndex];
   const targetQuestion = candidate && !isQuestionLocked(candidate.id, roundEnds) ? candidate : undefined;
+
+  const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
+  const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
+
+  const scrollToFirstRevisit = () => {
+    const first = questions.find((q) => revisitIds.includes(q.id));
+    if (first) document.getElementById(`mq-${first.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const busy = isGeneratingQuestions || isSynthesizingPrompt || isCooldownActive;
   const canSynthesize = hasApiKey && !busy;
@@ -81,13 +91,23 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
       <div className="sticky top-0 z-20 -mx-1 px-1 pt-2 pb-3 bg-background/90 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs text-zinc-400 whitespace-nowrap">
               Megválaszolva{" "}
               <strong className="font-mono text-zinc-50">
                 {answeredCount}/{totalCount}
               </strong>
             </div>
           </div>
+          {revisitCount > 0 && (
+            <button
+              type="button"
+              onClick={scrollToFirstRevisit}
+              className="ml-auto mr-2 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1 bg-sky-950/50 border border-sky-500/50 text-sky-300"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Később ({revisitCount})</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowConfirm(true)}
@@ -134,6 +154,7 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
           return (
             <React.Fragment key={q.id}>
               {/* Kérdés (asszisztens) */}
+              <div id={`mq-${q.id}`} className="scroll-mt-24" />
               <Bubble side="bot">
                 <div className="text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1.5">
                   <span>#{idx + 1}</span>
@@ -144,6 +165,15 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                   )}
                 </div>
                 <div className="text-[15px] leading-snug text-zinc-100">{q.question}</div>
+                {q.isCritical && (
+                  <div className="mt-2 flex items-start gap-1.5 text-[11px] text-rose-300 bg-rose-950/30 border border-rose-800/50 rounded-lg px-2 py-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="font-semibold">Kritikus téma</strong>
+                      {q.criticalReason ? ` – ${q.criticalReason}` : " – ez erősen befolyásolja a végleges promptot."}
+                    </span>
+                  </div>
+                )}
                 {q.isNew && (
                   <div className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg px-2 py-1.5">
                     <Flag className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -152,6 +182,19 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                       {q.newReason ? ` – ${q.newReason}` : " – korábban még nem szerepelt."}
                     </span>
                   </div>
+                )}
+                {!locked && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleRevisit(q.id)}
+                    aria-pressed={revisitIds.includes(q.id)}
+                    className={`mt-2 flex items-center gap-1 text-[11px] font-medium ${
+                      revisitIds.includes(q.id) ? "text-sky-300" : "text-zinc-500 active:text-zinc-300"
+                    }`}
+                  >
+                    <Clock className="w-3 h-3" />
+                    {revisitIds.includes(q.id) ? "Később visszatérek ✓" : "Később visszatérek"}
+                  </button>
                 )}
               </Bubble>
 
@@ -382,6 +425,8 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
         open={showConfirm}
         answeredCount={answeredCount}
         totalCount={totalCount}
+        criticalUnanswered={criticalUnanswered}
+        revisitCount={revisitCount}
         onCancel={() => setShowConfirm(false)}
         onConfirm={() => {
           setShowConfirm(false);
