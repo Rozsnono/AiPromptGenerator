@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Clock,
   RotateCw,
+  Ban,
 } from "lucide-react";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
 
@@ -52,6 +53,9 @@ export interface QuestionsViewProps {
   /** Lezárt körből újratárgyalásra feloldott kérdések azonosítói. */
   reopenedIds: number[];
   onToggleReopen: (questionId: number) => void;
+  /** Elvetett ötletek (kérdések) azonosítói. */
+  droppedIds: number[];
+  onToggleDrop: (questionId: number) => void;
 }
 
 /**
@@ -79,16 +83,20 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   onToggleRevisit,
   reopenedIds,
   onToggleReopen,
+  droppedIds,
+  onToggleDrop,
 }) => {
   const [filterMode, setFilterMode] = useState<"all" | "unanswered" | "revisit">("all");
   const [showConfirm, setShowConfirm] = useState(false);
 
   const totalCount = questions.length;
-  const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
+  // Az elvetett ötlet "lezártnak" számít: nem kell rá válaszolni, és nem kerül a promptba
+  const isResolved = (id: number) => isAnswered(answers[id]) || droppedIds.includes(id);
+  const answeredCount = questions.filter((q) => isResolved(q.id)).length;
   const progressPercent = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
 
   const filteredQuestions = questions.filter((q) => {
-    if (filterMode === "unanswered") return !isAnswered(answers[q.id]);
+    if (filterMode === "unanswered") return !isResolved(q.id);
     if (filterMode === "revisit") return revisitIds.includes(q.id);
     return true;
   });
@@ -98,9 +106,10 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   const newCount = questions.filter((q) => q.isNew).length;
   const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
   const reopenedCount = questions.filter((q) => isQuestionClosed(q.id, roundEnds) && reopenedIds.includes(q.id)).length;
+  const droppedCount = questions.filter((q) => droppedIds.includes(q.id)).length;
   const customCount = questions.filter((q) => isCustomAnswer(answers[q.id])).length;
   const multiCount = questions.filter((q) => isMultiAnswer(answers[q.id])).length;
-  const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
+  const criticalUnanswered = questions.filter((q) => q.isCritical && !isResolved(q.id)).length;
 
   const busy = isGeneratingQuestions || isSynthesizingPrompt || isCooldownActive;
   const canSynthesize = hasApiKey && !busy;
@@ -141,6 +150,8 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
             const closed = isQuestionClosed(q.id, roundEnds);
             const reopened = closed && reopenedIds.includes(q.id);
             const locked = isQuestionLocked(q.id, roundEnds, reopenedIds);
+            const dropped = droppedIds.includes(q.id);
+            const inactive = locked || dropped;
             const actualIndex = questions.findIndex((item) => item.id === q.id);
             const isRoundEnd = roundEnds.includes(q.id) || q.id === questions[questions.length - 1].id;
 
@@ -150,7 +161,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   id={`q-${q.id}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`scroll-mt-6 py-9 border-b border-zinc-800/60 space-y-5 ${locked ? "opacity-75" : ""}`}
+                  className={`scroll-mt-6 py-9 border-b border-zinc-800/60 space-y-5 ${locked ? "opacity-75" : ""} ${dropped ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-start gap-5">
                     <span className="font-mono text-3xl font-light text-zinc-600 leading-none pt-1 w-12 shrink-0">
@@ -158,7 +169,9 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                     </span>
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start justify-between gap-4">
-                        <h3 className="flex-1 min-w-0 text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
+                        <h3 className={`flex-1 min-w-0 text-xl font-medium text-zinc-100 leading-snug ${dropped ? "line-through decoration-zinc-500" : ""}`}>
+                          {q.question}
+                        </h3>
                         <div className="shrink-0 flex items-center gap-1.5">
                         {closed && (
                           <button
@@ -178,8 +191,23 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                         )}
                         <button
                           type="button"
-                          onClick={() => onToggleRevisit(q.id)}
+                          onClick={() => onToggleDrop(q.id)}
                           disabled={locked}
+                          aria-pressed={dropped}
+                          title={dropped ? "Ötlet elvetve – kattints a visszavételhez" : "Ötlet eldobása – nem kerül a promptba"}
+                          aria-label="Ötlet eldobása"
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                            dropped
+                              ? "bg-rose-950/50 border-rose-500/60 text-rose-300"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                          }`}
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onToggleRevisit(q.id)}
+                          disabled={inactive}
                           aria-pressed={revisitIds.includes(q.id)}
                           title={revisitIds.includes(q.id) ? "Később visszatérek – kattints a jelölés törléséhez" : "Később visszatérek – jelöld meg a kérdést"}
                           aria-label="Később visszatérek"
@@ -197,6 +225,12 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                         <div className="inline-flex items-center gap-1.5 mr-2 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5">
                           <Lock className="w-3.5 h-3.5" />
                           <span>Lezárt kör – nem módosítható</span>
+                        </div>
+                      )}
+                      {dropped && (
+                        <div className="inline-flex items-center gap-1.5 mr-2 text-xs text-rose-300 bg-rose-950/30 border border-rose-800/50 rounded-lg px-2.5 py-1.5">
+                          <Ban className="w-3.5 h-3.5" />
+                          <span>Elvetett ötlet – nem kerül a végleges promptba</span>
                         </div>
                       )}
                       {reopened && (
@@ -239,7 +273,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                             key={letter}
                             type="button"
                             onClick={() => onSelectOption(q.id, letter)}
-                            disabled={locked}
+                            disabled={inactive}
                             aria-pressed={isSelected}
                             className={`text-left p-4 rounded-2xl border transition-all group disabled:cursor-not-allowed ${
                               isSelected
@@ -279,7 +313,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onExtraTextChange(q.id, "")}
-                            disabled={locked}
+                            disabled={inactive}
                             className="disabled:hidden flex items-center gap-1.5 text-sm text-sky-400 hover:text-sky-300"
                           >
                             <PlusCircle className="w-4 h-4" />
@@ -294,7 +328,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                               rows={2}
                               placeholder="Pl. ...de ezen belül legyen kiemelt a..."
                               value={currentAnswer.extraText}
-                              disabled={locked}
+                              disabled={inactive}
                               onChange={(e) => onExtraTextChange(q.id, e.target.value)}
                               className="w-full bg-zinc-950 border border-sky-800/60 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-400 transition-all resize-y"
                             />
@@ -319,7 +353,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                         rows={2}
                         placeholder="Írd be a saját válaszodat..."
                         value={currentAnswer?.customText || ""}
-                        disabled={locked}
+                        disabled={inactive}
                         onChange={(e) => onCustomTextChange(q.id, e.target.value)}
                         className={`w-full bg-zinc-950 border rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none transition-all resize-y ${
                           isCustomSelected
@@ -416,7 +450,8 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
           </div>
           <div className="flex flex-wrap gap-2">
             {questions.map((q, idx) => {
-              const done = isAnswered(answers[q.id]);
+              const dropped = droppedIds.includes(q.id);
+              const done = isAnswered(answers[q.id]) && !dropped;
               const revisit = revisitIds.includes(q.id);
               const custom = isCustomAnswer(answers[q.id]);
               const multi = isMultiAnswer(answers[q.id]);
@@ -428,6 +463,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                 custom && "egyéni válasz",
                 multi && "több kijelölt válasz",
                 reopenedQ && "újratárgyalás alatt",
+                dropped && "elvetett ötlet",
               ].filter(Boolean);
               return (
                 <button
@@ -436,7 +472,9 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   onClick={() => scrollToQuestion(q.id)}
                   title={`${q.question}${hints.length ? ` (${hints.join(", ")})` : ""}`}
                   className={`relative w-10 h-10 rounded-lg text-xs font-mono font-semibold border transition-all ${
-                    q.isCritical
+                    dropped
+                      ? "border-dashed border-zinc-700 line-through opacity-60"
+                      : q.isCritical
                       ? "border-rose-500/60"
                       : done
                       ? "border-sky-500/40"
@@ -505,6 +543,12 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   <RotateCw className="w-2.5 h-2.5" />
                 </span>
                 újratárgyalás alatt ({reopenedCount})
+              </li>
+            )}
+            {droppedCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded border border-dashed border-zinc-500" />
+                elvetett ötlet ({droppedCount})
               </li>
             )}
             {customCount > 0 && (

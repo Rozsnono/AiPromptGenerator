@@ -17,7 +17,7 @@ import {
   DEFAULT_PROMPT_CONFIG,
   PRESETS,
 } from "./constants";
-import { extensionSuffix, describeSelectedOptions, selectedLetters, isQuestionLocked } from "./answers";
+import { extensionSuffix, describeSelectedOptions, selectedLetters, isQuestionLocked, isAnswered } from "./answers";
 import { generateClaudeText, listClaudeModels, describeClaudeError } from "./claude";
 import { Header } from "../components/Header";
 import { Stepper } from "../components/Stepper";
@@ -54,6 +54,8 @@ export default function AIPromptGeneratorPage() {
   const [revisitIds, setRevisitIds] = useState<number[]>([]);
   // Lezárt körből újratárgyalásra feloldott kérdések azonosítói
   const [reopenedIds, setReopenedIds] = useState<number[]>([]);
+  // Elvetett ötletek (kérdések) azonosítói: nem kerülnek a promptba, és nem számítanak megválaszolatlannak
+  const [droppedIds, setDroppedIds] = useState<number[]>([]);
 
   // Async & cooldown states
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
@@ -122,6 +124,7 @@ export default function AIPromptGeneratorPage() {
       const storedRoundEnds = localStorage.getItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
       const storedRevisit = localStorage.getItem(LOCAL_STORAGE_KEYS.REVISIT);
       const storedReopened = localStorage.getItem(LOCAL_STORAGE_KEYS.REOPENED);
+      const storedDropped = localStorage.getItem(LOCAL_STORAGE_KEYS.DROPPED);
 
       if (storedKey) setCustomApiKey(storedKey);
       if (storedCachedModels) {
@@ -168,6 +171,12 @@ export default function AIPromptGeneratorPage() {
           if (Array.isArray(parsed)) setRoundEnds(parsed.filter((n) => typeof n === "number"));
         } catch {}
       }
+      if (storedDropped) {
+        try {
+          const parsed = JSON.parse(storedDropped);
+          if (Array.isArray(parsed)) setDroppedIds(parsed.filter((n) => typeof n === "number"));
+        } catch {}
+      }
       if (storedReopened) {
         try {
           const parsed = JSON.parse(storedReopened);
@@ -211,10 +220,11 @@ export default function AIPromptGeneratorPage() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.ROUND_ENDS, JSON.stringify(roundEnds));
       localStorage.setItem(LOCAL_STORAGE_KEYS.REVISIT, JSON.stringify(revisitIds));
       localStorage.setItem(LOCAL_STORAGE_KEYS.REOPENED, JSON.stringify(reopenedIds));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.DROPPED, JSON.stringify(droppedIds));
     } catch (err) {
       console.warn("LocalStorage write warning:", err);
     }
-  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds, revisitIds, reopenedIds]);
+  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds, revisitIds, reopenedIds, droppedIds]);
 
   // Cleanup timers
   useEffect(() => {
@@ -252,6 +262,7 @@ export default function AIPromptGeneratorPage() {
       setRoundEnds([]);
       setRevisitIds([]);
       setReopenedIds([]);
+      setDroppedIds([]);
       setIsEnhancing(false);
       setCurrentStep(1);
       try {
@@ -263,6 +274,7 @@ export default function AIPromptGeneratorPage() {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.REVISIT);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.REOPENED);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.DROPPED);
       } catch {}
       toast.success("Munkaterület sikeresen visszaállítva!");
     }
@@ -343,6 +355,9 @@ Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható ké
       // Follow-up context
       const previousQA = questions
         .map((q, idx) => {
+          if (droppedIds.includes(q.id)) {
+            return `Kérdés ${idx + 1}: "${q.question}"\nA felhasználó ezt az ötletet ELVETETTE – ne kérdezz rá újra, és ne javasolj hasonló irányt.`;
+          }
           const userAns = answers[q.id];
           let ansText = "Még nem válaszolt";
           if (userAns) {
@@ -446,6 +461,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
           setRoundEnds([]);
       setRevisitIds([]);
       setReopenedIds([]);
+      setDroppedIds([]);
           setCurrentStep(2);
           toast.success(`${validatedQuestions.length} kérdés sikeresen előállítva!`);
         } else {
@@ -514,8 +530,19 @@ ${
 2. Tone & Architecture Focus: ${promptConfig.tone.toUpperCase()}.
 3. Synthesize the user's objective and all answered questions into an immaculate, ready-to-run Master Prompt.`;
 
+      const droppedSummary = questions
+        .filter((q) => droppedIds.includes(q.id))
+        .map((q) => `- ${q.question}`)
+        .join("\n");
+
       const answersSummary = questions
         .map((q, idx) => {
+          // Elvetett ötlet: nem kerül a promptba, csak a körhöz írt irányelve marad meg
+          if (droppedIds.includes(q.id)) {
+            return guidelines[q.id]
+              ? `[User's Custom Guideline for the round ending at question ${idx + 1}: "${guidelines[q.id]}"]`
+              : null;
+          }
           const userAns = answers[q.id];
           let selectedText = "Nem válaszolt külön (alkalmazz iparági best practice-t)";
           if (userAns) {
@@ -531,6 +558,7 @@ ${
           }
           return `Kérdés ${idx + 1}${q.isCritical ? " [KRITIKUS TÉMA – kiemelten kezeld]" : ""}: "${q.question}"\nVálasz: ${selectedText}${roundGuideline}`;
         })
+        .filter((entry): entry is string => entry !== null)
         .join("\n\n");
 
       const synthesisPrompt = `${isEnhancing ? "User's Existing Prompt to Enhance:" : "User's Initial Goal:"}
@@ -542,7 +570,11 @@ User's Clarifying Answers to the Questions:
 """
 ${answersSummary}
 """
-
+${
+  droppedSummary
+    ? `\nDISCARDED IDEAS (the user explicitly rejected these topics – do NOT include or imply them in the prompt):\n${droppedSummary}\n`
+    : ""
+}
 Target Output Language: ${isEnglish ? "ENGLISH" : "HUNGARIAN"}
 Tone: ${promptConfig.tone}
 
@@ -622,6 +654,13 @@ Please synthesize everything into the ultimate Master Prompt. ${
     );
   };
 
+  const handleToggleDrop = (questionId: number) => {
+    if (isQuestionLocked(questionId, roundEnds, reopenedIds)) return;
+    setDroppedIds((prev) =>
+      prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
+    );
+  };
+
   const handleToggleReopen = (questionId: number) => {
     setReopenedIds((prev) =>
       prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
@@ -675,14 +714,10 @@ Please synthesize everything into the ultimate Master Prompt. ${
     );
   }
 
-  const answeredCount = Object.keys(answers).filter((id) => {
-    const ans = answers[Number(id)];
-    if (!ans) return false;
-    if (ans.selectedOption === "D") {
-      return Boolean(ans.customText && ans.customText.trim().length > 0);
-    }
-    return true;
-  }).length;
+  // Az elvetett ötletek is "lezártnak" számítanak a haladásban
+  const answeredCount = questions.filter(
+    (q) => isAnswered(answers[q.id]) || droppedIds.includes(q.id)
+  ).length;
 
   return (
     <div className="min-h-screen bg-background text-zinc-100 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 selection:bg-sky-500/30 selection:text-sky-200">
@@ -775,6 +810,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               onToggleRevisit={handleToggleRevisit}
               reopenedIds={reopenedIds}
               onToggleReopen={handleToggleReopen}
+              droppedIds={droppedIds}
+              onToggleDrop={handleToggleDrop}
               roundEnds={roundEnds}
               goalText={userInput}
               />
@@ -799,6 +836,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               onToggleRevisit={handleToggleRevisit}
               reopenedIds={reopenedIds}
               onToggleReopen={handleToggleReopen}
+              droppedIds={droppedIds}
+              onToggleDrop={handleToggleDrop}
               roundEnds={roundEnds}
               goalText={userInput}
               />

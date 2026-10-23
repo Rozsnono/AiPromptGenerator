@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check, AlertTriangle, Clock, RotateCw } from "lucide-react";
+import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check, AlertTriangle, Clock, RotateCw, Ban } from "lucide-react";
 import { QuestionsViewProps } from "./QuestionsView";
 import { isAnswered, displayAnswerText, selectedLetters, isQuestionLocked, isQuestionClosed } from "../app/answers";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
@@ -33,6 +33,8 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   onToggleRevisit,
   reopenedIds,
   onToggleReopen,
+  droppedIds,
+  onToggleDrop,
 }) => {
   const [composerText, setComposerText] = useState("");
   // Az a kérdés, aminek az opciói épp nyitva vannak (több opció is kijelölhető, "Tovább"-ig marad nyitva)
@@ -41,12 +43,14 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   const endRef = useRef<HTMLDivElement>(null);
 
   const totalCount = questions.length;
-  const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
+  // Az elvetett ötlet lezártnak számít: nem kell rá válaszolni
+  const isResolved = (id: number) => isAnswered(answers[id]) || droppedIds.includes(id);
+  const answeredCount = questions.filter((q) => isResolved(q.id)).length;
   const progressPercent = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
 
   // Az első megválaszolatlan kérdés indexe; ha nincs, minden kérdés megvan.
   // A zárolt (lezárt körös) kérdéseket nem várjuk meg, még ha kimaradtak is
-  const firstOpen = questions.findIndex((q) => !isAnswered(answers[q.id]) && !isQuestionLocked(q.id, roundEnds, reopenedIds));
+  const firstOpen = questions.findIndex((q) => !isResolved(q.id) && !isQuestionLocked(q.id, roundEnds, reopenedIds));
   const openIndex = openId === null ? -1 : questions.findIndex((q) => q.id === openId);
   const lastAnsweredIndex = firstOpen === -1 ? totalCount - 1 : firstOpen - 1;
   // Amíg az épp megválaszolt (utolsó) kérdés nyitva van, a következő még nem jelenik meg
@@ -56,7 +60,7 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   const candidate = openIndex !== -1 ? questions[openIndex] : questions[activeIndex];
   const targetQuestion = candidate && !isQuestionLocked(candidate.id, roundEnds, reopenedIds) ? candidate : undefined;
 
-  const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
+  const criticalUnanswered = questions.filter((q) => q.isCritical && !isResolved(q.id)).length;
   const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
 
   const scrollToFirstRevisit = () => {
@@ -151,8 +155,9 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
           const closed = isQuestionClosed(q.id, roundEnds);
           const reopened = closed && reopenedIds.includes(q.id);
           const locked = isQuestionLocked(q.id, roundEnds, reopenedIds);
+          const dropped = droppedIds.includes(q.id);
           const isOpen = !locked && openId === q.id;
-          const showOptions = !locked && (!answered || isOpen);
+          const showOptions = !locked && !dropped && (!answered || isOpen);
           const isRoundEnd = roundEnds.includes(q.id) || q.id === questions[questions.length - 1].id;
 
           return (
@@ -173,7 +178,9 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                     </span>
                   )}
                 </div>
-                <div className="text-[15px] leading-snug text-zinc-100">{q.question}</div>
+                <div className={`text-[15px] leading-snug text-zinc-100 ${dropped ? "line-through decoration-zinc-500 opacity-60" : ""}`}>
+                  {q.question}
+                </div>
                 {q.isCritical && (
                   <div className="mt-2 flex items-start gap-1.5 text-[11px] text-rose-300 bg-rose-950/30 border border-rose-800/50 rounded-lg px-2 py-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -206,6 +213,19 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                   </button>
                 )}
                 {!locked && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleDrop(q.id)}
+                    aria-pressed={dropped}
+                    className={`mt-2 mr-3 inline-flex items-center gap-1 text-[11px] font-medium ${
+                      dropped ? "text-rose-300" : "text-zinc-500 active:text-zinc-300"
+                    }`}
+                  >
+                    <Ban className="w-3 h-3" />
+                    {dropped ? "Elvetve ✓" : "Ötlet eldobása"}
+                  </button>
+                )}
+                {!locked && !dropped && (
                   <button
                     type="button"
                     onClick={() => onToggleRevisit(q.id)}
@@ -273,12 +293,12 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                 </div>
               )}
 
-              {locked && !answered && (
+              {locked && !answered && !dropped && (
                 <div className="pl-10 text-[11px] text-zinc-500">Ezt a kérdést kihagytad, a kör lezárult.</div>
               )}
 
               {/* Válasz (felhasználó) */}
-              {answered && !showOptions && (
+              {answered && !showOptions && !dropped && (
                 <div className="flex flex-col items-end gap-1.5">
                   <Bubble side="user">
                     {ans!.selectedOption === "D" ? (
