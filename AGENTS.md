@@ -14,7 +14,12 @@ Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, framer-motion, reac
 - `app/claude.ts` – **egyetlen belépési pont a Claude API-hoz**: `generateClaudeText`, `sendClaudeChat`, `listClaudeModels`, `describeClaudeError`.
 - `app/constants.ts` – alapmodellek, localStorage kulcsok, preset-ek, alapkonfig.
 - `app/types.ts` – közös típusok.
-- `components/` – UI (Header, Stepper, PromptConfigPanel, QuestionsView, FinalPromptView, ChatModal, MarkdownRenderer).
+- `app/answers.ts` – válasz-segédek (`isAnswered`, `displayAnswerText`, `extensionSuffix`).
+- `components/` – UI (Header, Stepper, PromptConfigPanel, FinalPromptView, ChatModal, MarkdownRenderer, ConfirmFinalModal).
+- Kérdés-lépés (2. lépés) **két külön nézet**, azonos propokkal (`QuestionsViewProps`), CSS breakpointtal váltva az `app/page.tsx`-ben:
+  - `components/QuestionsView.tsx` – desktop (`lg` felett): szerkesztői, tágas, jobb oldali fix oldalsávval.
+  - `components/QuestionsMobileChat.tsx` – telefon/tablet (`lg` alatt): chat-szerű, buborékokkal, alsó beviteli sávval.
+  Az 1. és 3. lépés még közös, reszponzív nézet.
 
 ## Indítás / build / teszt
 ```bash
@@ -33,7 +38,9 @@ Automatizált teszt és ESLint-konfiguráció jelenleg nincs (`next lint` intera
 Anthropic Messages API (`POST /v1/messages`) és Models API (`GET /v1/models`) a hivatalos SDK-n át. Alapmodell: `claude-opus-5-5` (választható: `claude-sonnet-5-5`, `claude-haiku-5-5`, a fiókban elérhető többi Claude modell). Nem küldünk `temperature`/`budget_tokens` paramétert (az újabb modelleken 400-at okoz); a kérdések JSON kimenetét prompt írja elő, `cleanAndParseJSON` dolgozza fel.
 
 ## Üzleti szabályok / formátumok
-- Kérdések: JSON tömb `{id, question, options:{A,B,C}}`; a D opció egyéni szabad szöveg.
+- Kérdések: JSON tömb `{id, question, options:{A,B,C}, isNew?, newReason?}`; a D opció egyéni szabad szöveg. `isNew` csak a további (follow-up) körben kérhető a modelltől: olyan témát jelöl, ami a célban/korábbi válaszokban még nem szerepelt (a kérés a kódban egészül ki, nem a mentett rendszerpromptban).
+- Válasz: `{selectedOption, customText?, extraText?}`; `extraText` az A/B/C válasz kiegészítése, a promptokba `extensionSuffix`-szel kerül.
+- A végleges generálás előtt megerősítő ablak ("Biztos kész vagy?") jelenik meg.
 - A végső prompt célnyelve (hu/en), hangnem és programozói tudásszint konfigurálható.
 - Állapot teljes egészében `localStorage`-ban él (nincs szerver/DB).
 

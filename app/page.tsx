@@ -18,11 +18,13 @@ import {
   DEFAULT_PROMPT_CONFIG,
   PRESETS,
 } from "./constants";
+import { extensionSuffix } from "./answers";
 import { generateClaudeText, listClaudeModels, describeClaudeError } from "./claude";
 import { Header } from "../components/Header";
 import { Stepper } from "../components/Stepper";
 import { PromptConfigPanel } from "../components/PromptConfigPanel";
 import { QuestionsView } from "../components/QuestionsView";
+import { QuestionsMobileChat } from "../components/QuestionsMobileChat";
 import { FinalPromptView } from "../components/FinalPromptView";
 import { ChatModal } from "../components/ChatModal";
 
@@ -305,7 +307,7 @@ Kérlek generálj pontosan ${questionCount} darab strukturált, mélyreható ké
             if (userAns.selectedOption === "D") {
               ansText = `Egyéni válasz (D): "${userAns.customText || "Nincs kitöltve"}"`;
             } else {
-              ansText = `Opció ${userAns.selectedOption}: "${q.options[userAns.selectedOption as "A" | "B" | "C"]}"`;
+              ansText = `Opció ${userAns.selectedOption}: "${q.options[userAns.selectedOption as "A" | "B" | "C"]}"${extensionSuffix(userAns)}`;
             }
           }
           
@@ -357,7 +359,11 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
         const responseText = await generateClaudeText({
           apiKey: activeApiKey,
           model: selectedModel,
-          system: `${systemInstruction}\n\nFONTOS: Kizárólag érvényes JSON tömbbel válaszolj, bármilyen kísérőszöveg vagy markdown kódblokk nélkül.`,
+          system: `${systemInstruction}\n\nFONTOS: Kizárólag érvényes JSON tömbbel válaszolj, bármilyen kísérőszöveg vagy markdown kódblokk nélkül.${
+            isFollowUp && questions.length > 0
+              ? `\nHa egy kérdés olyan témát nyit meg, ami az eredeti célban és az eddigi kérdés-válaszokban még NEM szerepelt, add hozzá az objektumhoz: "isNew": true és "newReason": "egy rövid magyar mondat, miért új téma". Egyébként ezeket a mezőket hagyd el.`
+              : ""
+          }`,
           prompt: promptText,
         });
         const parsedData = cleanAndParseJSON(responseText);
@@ -378,6 +384,9 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
               B: String(item.options.B),
               C: String(item.options.C),
             },
+            ...(item.isNew === true
+              ? { isNew: true, newReason: typeof item.newReason === "string" ? item.newReason : undefined }
+              : {}),
           };
         });
 
@@ -398,6 +407,8 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
             id: currentCount + idx + 1,
             question: q.question,
             options: q.options,
+            isNew: q.isNew,
+            newReason: q.newReason,
           }));
           setQuestions((prev) => [...prev, ...renumbered]);
           toast.success(`${renumbered.length} új kérdés hozzáadva!`);
@@ -461,7 +472,7 @@ ${
             } else {
               const optionLetter = userAns.selectedOption;
               const optionContent = q.options[optionLetter as "A" | "B" | "C"];
-              selectedText = `Opció ${optionLetter}: "${optionContent}"`;
+              selectedText = `Opció ${optionLetter}: "${optionContent}"${extensionSuffix(userAns)}`;
             }
           }
           let roundGuideline = "";
@@ -521,8 +532,19 @@ Please synthesize everything into the ultimate Master Prompt. ${
       [questionId]: {
         selectedOption: optionKey,
         customText: prev[questionId]?.customText || "",
+        // A kiegészítés az adott opcióhoz tartozik: másik opciónál nem érvényes
+        extraText: prev[questionId]?.selectedOption === optionKey ? prev[questionId]?.extraText : undefined,
       },
     }));
+  };
+
+  const handleExtraTextChange = (questionId: number, text: string) => {
+    setAnswers((prev) => {
+      const current = prev[questionId];
+      // Kiegészíteni csak már kiválasztott A/B/C választ lehet
+      if (!current || current.selectedOption === "D") return prev;
+      return { ...prev, [questionId]: { ...current, extraText: text } };
+    });
   };
 
   const handleCustomTextChange = (questionId: number, text: string) => {
@@ -581,7 +603,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-sky-500/5 blur-[120px] pointer-events-none rounded-full" />
       <div className="fixed top-40 right-10 w-[450px] h-[250px] bg-indigo-500/5 blur-[130px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-4xl z-10 space-y-6">
+      <div className={`w-full z-10 space-y-6 ${currentStep === 2 ? "max-w-4xl lg:max-w-6xl" : "max-w-4xl"}`}>
         {/* Header */}
         <Header
           availableModels={availableModels}
@@ -766,11 +788,14 @@ Please synthesize everything into the ultimate Master Prompt. ${
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
           >
-            <QuestionsView
-              questions={questions}
+            {/* Telefon/tablet: chat-szerű nézet; gép (lg+): kétoszlopos szerkesztői nézet */}
+            <div className="lg:hidden">
+              <QuestionsMobileChat
+                          questions={questions}
               answers={answers}
               onSelectOption={handleSelectOption}
               onCustomTextChange={handleCustomTextChange}
+              onExtraTextChange={handleExtraTextChange}
               onGenerateMoreQuestions={() => handleGenerateQuestions(true)}
               onGenerateFinalPrompt={handleGenerateFinalPrompt}
               isGeneratingQuestions={isGeneratingQuestions}
@@ -781,7 +806,29 @@ Please synthesize everything into the ultimate Master Prompt. ${
               guidelines={guidelines}
               onGuidelineChange={(qId, text) => setGuidelines(prev => ({ ...prev, [qId]: text }))}
               roundEnds={roundEnds}
-            />
+              goalText={userInput}
+              />
+            </div>
+            <div className="hidden lg:block">
+              <QuestionsView
+                          questions={questions}
+              answers={answers}
+              onSelectOption={handleSelectOption}
+              onCustomTextChange={handleCustomTextChange}
+              onExtraTextChange={handleExtraTextChange}
+              onGenerateMoreQuestions={() => handleGenerateQuestions(true)}
+              onGenerateFinalPrompt={handleGenerateFinalPrompt}
+              isGeneratingQuestions={isGeneratingQuestions}
+              isSynthesizingPrompt={isSynthesizingPrompt}
+              isCooldownActive={isCooldownActive}
+              cooldownSeconds={cooldownSeconds}
+              hasApiKey={Boolean(activeApiKey)}
+              guidelines={guidelines}
+              onGuidelineChange={(qId, text) => setGuidelines(prev => ({ ...prev, [qId]: text }))}
+              roundEnds={roundEnds}
+              goalText={userInput}
+              />
+            </div>
           </motion.div>
         )}
 
@@ -824,6 +871,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
           finalPrompt={finalPrompt}
           questions={questions}
           answers={answers}
+          raised={currentStep === 2}
         />
       )}
     </div>

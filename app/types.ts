@@ -6,6 +6,10 @@ export interface QuestionItem {
     B: string;
     C: string;
   };
+  /** A modell szerint olyan téma, ami a célban / korábbi válaszokban még nem szerepelt. */
+  isNew?: boolean;
+  /** Rövid magyar indoklás, miért új a téma (csak isNew esetén). */
+  newReason?: string;
 }
 
 export type SelectedOptionKey = "A" | "B" | "C" | "D";
@@ -13,6 +17,8 @@ export type SelectedOptionKey = "A" | "B" | "C" | "D";
 export interface UserAnswer {
   selectedOption: SelectedOptionKey;
   customText?: string;
+  /** Kiegészítés a kiválasztott A/B/C válaszhoz ("ez, de bővítve"). */
+  extraText?: string;
 }
 
 export interface AnswersState {
