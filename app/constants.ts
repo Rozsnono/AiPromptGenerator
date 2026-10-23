@@ -19,6 +19,7 @@ export const LOCAL_STORAGE_KEYS = {
   GUIDELINES: "ai_prompt_gen_guidelines",
   ROUND_ENDS: "ai_prompt_gen_round_ends",
   REVISIT: "ai_prompt_gen_revisit",
+  REOPENED: "ai_prompt_gen_reopened",
 };
 
 export const DEFAULT_SYNTHESIS_SYSTEM_INSTRUCTION = `You are a World-Class Principal AI Prompt Engineer and System Architect.

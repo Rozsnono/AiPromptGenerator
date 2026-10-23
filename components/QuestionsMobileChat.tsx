@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check, AlertTriangle, Clock } from "lucide-react";
+import { Bot, Send, Sparkles, Flag, PlusCircle, Pencil, RotateCcw, ArrowRight, Lock, Check, AlertTriangle, Clock, RotateCw } from "lucide-react";
 import { QuestionsViewProps } from "./QuestionsView";
-import { isAnswered, displayAnswerText, selectedLetters, isQuestionLocked } from "../app/answers";
+import { isAnswered, displayAnswerText, selectedLetters, isQuestionLocked, isQuestionClosed } from "../app/answers";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
 
 /**
@@ -31,6 +31,8 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
   roundEnds,
   revisitIds,
   onToggleRevisit,
+  reopenedIds,
+  onToggleReopen,
 }) => {
   const [composerText, setComposerText] = useState("");
   // Az a kérdés, aminek az opciói épp nyitva vannak (több opció is kijelölhető, "Tovább"-ig marad nyitva)
@@ -44,7 +46,7 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
 
   // Az első megválaszolatlan kérdés indexe; ha nincs, minden kérdés megvan.
   // A zárolt (lezárt körös) kérdéseket nem várjuk meg, még ha kimaradtak is
-  const firstOpen = questions.findIndex((q) => !isAnswered(answers[q.id]) && !isQuestionLocked(q.id, roundEnds));
+  const firstOpen = questions.findIndex((q) => !isAnswered(answers[q.id]) && !isQuestionLocked(q.id, roundEnds, reopenedIds));
   const openIndex = openId === null ? -1 : questions.findIndex((q) => q.id === openId);
   const lastAnsweredIndex = firstOpen === -1 ? totalCount - 1 : firstOpen - 1;
   // Amíg az épp megválaszolt (utolsó) kérdés nyitva van, a következő még nem jelenik meg
@@ -52,7 +54,7 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
     openIndex !== -1 && openIndex === lastAnsweredIndex ? openIndex : firstOpen === -1 ? totalCount : firstOpen;
   // Amelyikre épp válaszolni lehet (nyitott, vagy az első megválaszolatlan); zárolt kérdésre nem
   const candidate = openIndex !== -1 ? questions[openIndex] : questions[activeIndex];
-  const targetQuestion = candidate && !isQuestionLocked(candidate.id, roundEnds) ? candidate : undefined;
+  const targetQuestion = candidate && !isQuestionLocked(candidate.id, roundEnds, reopenedIds) ? candidate : undefined;
 
   const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
   const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
@@ -146,7 +148,9 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
           const ans = answers[q.id];
           const answered = isAnswered(ans);
           const letters = selectedLetters(ans);
-          const locked = isQuestionLocked(q.id, roundEnds);
+          const closed = isQuestionClosed(q.id, roundEnds);
+          const reopened = closed && reopenedIds.includes(q.id);
+          const locked = isQuestionLocked(q.id, roundEnds, reopenedIds);
           const isOpen = !locked && openId === q.id;
           const showOptions = !locked && (!answered || isOpen);
           const isRoundEnd = roundEnds.includes(q.id) || q.id === questions[questions.length - 1].id;
@@ -161,6 +165,11 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                   {locked && (
                     <span className="flex items-center gap-1 text-zinc-500">
                       <Lock className="w-3 h-3" /> lezárt
+                    </span>
+                  )}
+                  {reopened && (
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <RotateCw className="w-3 h-3" /> újratárgyalás
                     </span>
                   )}
                 </div>
@@ -183,12 +192,25 @@ export const QuestionsMobileChat: React.FC<QuestionsViewProps> = ({
                     </span>
                   </div>
                 )}
+                {closed && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleReopen(q.id)}
+                    aria-pressed={reopened}
+                    className={`mt-2 mr-3 inline-flex items-center gap-1 text-[11px] font-medium ${
+                      reopened ? "text-amber-300" : "text-zinc-500 active:text-zinc-300"
+                    }`}
+                  >
+                    <RotateCw className="w-3 h-3" />
+                    {reopened ? "Újratárgyalás ✓" : "Újratárgyalás"}
+                  </button>
+                )}
                 {!locked && (
                   <button
                     type="button"
                     onClick={() => onToggleRevisit(q.id)}
                     aria-pressed={revisitIds.includes(q.id)}
-                    className={`mt-2 flex items-center gap-1 text-[11px] font-medium ${
+                    className={`mt-2 inline-flex items-center gap-1 text-[11px] font-medium ${
                       revisitIds.includes(q.id) ? "text-sky-300" : "text-zinc-500 active:text-zinc-300"
                     }`}
                   >

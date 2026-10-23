@@ -7,6 +7,7 @@ import {
   isAnswered,
   selectedLetters,
   isQuestionLocked,
+  isQuestionClosed,
   isCustomAnswer,
   isMultiAnswer,
 } from "../app/answers";
@@ -23,6 +24,7 @@ import {
   Check,
   AlertTriangle,
   Clock,
+  RotateCw,
 } from "lucide-react";
 import { ConfirmFinalModal } from "./ConfirmFinalModal";
 
@@ -47,6 +49,9 @@ export interface QuestionsViewProps {
   /** "Később visszatérek" jelölésű kérdések azonosítói. */
   revisitIds: number[];
   onToggleRevisit: (questionId: number) => void;
+  /** Lezárt körből újratárgyalásra feloldott kérdések azonosítói. */
+  reopenedIds: number[];
+  onToggleReopen: (questionId: number) => void;
 }
 
 /**
@@ -72,6 +77,8 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   roundEnds,
   revisitIds,
   onToggleRevisit,
+  reopenedIds,
+  onToggleReopen,
 }) => {
   const [filterMode, setFilterMode] = useState<"all" | "unanswered" | "revisit">("all");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -90,6 +97,7 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
   const criticalCount = questions.filter((q) => q.isCritical).length;
   const newCount = questions.filter((q) => q.isNew).length;
   const revisitCount = questions.filter((q) => revisitIds.includes(q.id)).length;
+  const reopenedCount = questions.filter((q) => isQuestionClosed(q.id, roundEnds) && reopenedIds.includes(q.id)).length;
   const customCount = questions.filter((q) => isCustomAnswer(answers[q.id])).length;
   const multiCount = questions.filter((q) => isMultiAnswer(answers[q.id])).length;
   const criticalUnanswered = questions.filter((q) => q.isCritical && !isAnswered(answers[q.id])).length;
@@ -130,7 +138,9 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
             const currentAnswer = answers[q.id];
             const letters = selectedLetters(currentAnswer);
             const isCustomSelected = currentAnswer?.selectedOption === "D";
-            const locked = isQuestionLocked(q.id, roundEnds);
+            const closed = isQuestionClosed(q.id, roundEnds);
+            const reopened = closed && reopenedIds.includes(q.id);
+            const locked = isQuestionLocked(q.id, roundEnds, reopenedIds);
             const actualIndex = questions.findIndex((item) => item.id === q.id);
             const isRoundEnd = roundEnds.includes(q.id) || q.id === questions[questions.length - 1].id;
 
@@ -149,13 +159,30 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start justify-between gap-4">
                         <h3 className="text-xl font-medium text-zinc-100 leading-snug">{q.question}</h3>
+                        <div className="shrink-0 flex items-center gap-2">
+                        {closed && (
+                          <button
+                            type="button"
+                            onClick={() => onToggleReopen(q.id)}
+                            aria-pressed={reopened}
+                            title="Lezárt kör kérdésének újranyitása és módosítása"
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                              reopened
+                                ? "bg-amber-950/40 border-amber-500/60 text-amber-300"
+                                : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
+                            }`}
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                            <span>{reopened ? "Újratárgyalás ✓" : "Újratárgyalás"}</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => onToggleRevisit(q.id)}
                           disabled={locked}
                           aria-pressed={revisitIds.includes(q.id)}
                           title="Jelöld meg, ha később szeretnél visszatérni erre a kérdésre"
-                          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             revisitIds.includes(q.id)
                               ? "bg-sky-950/50 border-sky-500/60 text-sky-300"
                               : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
@@ -164,11 +191,18 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                           <Clock className="w-3.5 h-3.5" />
                           <span>{revisitIds.includes(q.id) ? "Később visszatérek ✓" : "Később visszatérek"}</span>
                         </button>
+                        </div>
                       </div>
                       {locked && (
                         <div className="inline-flex items-center gap-1.5 mr-2 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5">
                           <Lock className="w-3.5 h-3.5" />
                           <span>Lezárt kör – nem módosítható</span>
+                        </div>
+                      )}
+                      {reopened && (
+                        <div className="inline-flex items-center gap-1.5 mr-2 text-xs text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg px-2.5 py-1.5">
+                          <RotateCw className="w-3.5 h-3.5" />
+                          <span>Újratárgyalás alatt – a válasz módosítható</span>
                         </div>
                       )}
                       {q.isCritical && (
@@ -386,12 +420,14 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
               const revisit = revisitIds.includes(q.id);
               const custom = isCustomAnswer(answers[q.id]);
               const multi = isMultiAnswer(answers[q.id]);
+              const reopenedQ = isQuestionClosed(q.id, roundEnds) && reopenedIds.includes(q.id);
               const hints = [
                 q.isCritical && "kritikus téma",
                 q.isNew && "új téma",
                 revisit && "később visszatérek",
                 custom && "egyéni válasz",
                 multi && "több kijelölt válasz",
+                reopenedQ && "újratárgyalás alatt",
               ].filter(Boolean);
               return (
                 <button
@@ -422,6 +458,11 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                       </span>
                     )}
                   </span>
+                  {reopenedQ && (
+                    <span className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                      <RotateCw className="w-2.5 h-2.5" />
+                    </span>
+                  )}
                   {/* Bal alsó sarok: egyéni / több válasz */}
                   {(custom || multi) && (
                     <span
@@ -456,6 +497,14 @@ export const QuestionsView: React.FC<QuestionsViewProps> = ({
                   <Clock className="w-2.5 h-2.5" />
                 </span>
                 később visszatérek ({revisitCount})
+              </li>
+            )}
+            {reopenedCount > 0 && (
+              <li className="flex items-center gap-1.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                  <RotateCw className="w-2.5 h-2.5" />
+                </span>
+                újratárgyalás alatt ({reopenedCount})
               </li>
             )}
             {customCount > 0 && (

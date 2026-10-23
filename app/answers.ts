@@ -53,8 +53,14 @@ export function describeSelectedOptions(question: QuestionOptions, answer: UserA
  * (egy kör akkor záródik, ha új kérdéseket kértek utána), ezért minden kérdés zárolt, aminek az azonosítója
  * nem nagyobb a legnagyobb lezáró azonosítónál.
  */
-export function isQuestionLocked(questionId: number, roundEnds: number[]): boolean {
+export function isQuestionLocked(questionId: number, roundEnds: number[], reopenedIds: number[] = []): boolean {
+  if (reopenedIds.includes(questionId)) return false;
   return roundEnds.length > 0 && questionId <= Math.max(...roundEnds);
+}
+
+/** A kérdés lezárt körhöz tartozik (akkor is, ha épp újratárgyalásra fel van oldva). */
+export function isQuestionClosed(questionId: number, roundEnds: number[]): boolean {
+  return isQuestionLocked(questionId, roundEnds);
 }
 
 /** Több A/B/C opció is ki van jelölve. */

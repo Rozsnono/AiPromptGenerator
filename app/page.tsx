@@ -52,6 +52,8 @@ export default function AIPromptGeneratorPage() {
   const [roundEnds, setRoundEnds] = useState<number[]>([]);
   // "Később térjünk vissza rá" jelölésű kérdések azonosítói
   const [revisitIds, setRevisitIds] = useState<number[]>([]);
+  // Lezárt körből újratárgyalásra feloldott kérdések azonosítói
+  const [reopenedIds, setReopenedIds] = useState<number[]>([]);
 
   // Async & cooldown states
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
@@ -119,6 +121,7 @@ export default function AIPromptGeneratorPage() {
       const storedGuidelines = localStorage.getItem(LOCAL_STORAGE_KEYS.GUIDELINES);
       const storedRoundEnds = localStorage.getItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
       const storedRevisit = localStorage.getItem(LOCAL_STORAGE_KEYS.REVISIT);
+      const storedReopened = localStorage.getItem(LOCAL_STORAGE_KEYS.REOPENED);
 
       if (storedKey) setCustomApiKey(storedKey);
       if (storedCachedModels) {
@@ -165,6 +168,12 @@ export default function AIPromptGeneratorPage() {
           if (Array.isArray(parsed)) setRoundEnds(parsed.filter((n) => typeof n === "number"));
         } catch {}
       }
+      if (storedReopened) {
+        try {
+          const parsed = JSON.parse(storedReopened);
+          if (Array.isArray(parsed)) setReopenedIds(parsed.filter((n) => typeof n === "number"));
+        } catch {}
+      }
       if (storedRevisit) {
         try {
           const parsed = JSON.parse(storedRevisit);
@@ -201,10 +210,11 @@ export default function AIPromptGeneratorPage() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.GUIDELINES, JSON.stringify(guidelines));
       localStorage.setItem(LOCAL_STORAGE_KEYS.ROUND_ENDS, JSON.stringify(roundEnds));
       localStorage.setItem(LOCAL_STORAGE_KEYS.REVISIT, JSON.stringify(revisitIds));
+      localStorage.setItem(LOCAL_STORAGE_KEYS.REOPENED, JSON.stringify(reopenedIds));
     } catch (err) {
       console.warn("LocalStorage write warning:", err);
     }
-  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds, revisitIds]);
+  }, [mounted, customApiKey, selectedModel, userInput, promptConfig, questions, answers, finalPrompt, guidelines, roundEnds, revisitIds, reopenedIds]);
 
   // Cleanup timers
   useEffect(() => {
@@ -241,6 +251,7 @@ export default function AIPromptGeneratorPage() {
       setGuidelines({});
       setRoundEnds([]);
       setRevisitIds([]);
+      setReopenedIds([]);
       setIsEnhancing(false);
       setCurrentStep(1);
       try {
@@ -251,6 +262,7 @@ export default function AIPromptGeneratorPage() {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.GUIDELINES);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.ROUND_ENDS);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.REVISIT);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.REOPENED);
       } catch {}
       toast.success("Munkaterület sikeresen visszaállítva!");
     }
@@ -433,6 +445,7 @@ Kérlek generálj pontosan 3 új, mélyebb follow-up kérdést magyar nyelven (A
           setGuidelines({});
           setRoundEnds([]);
       setRevisitIds([]);
+      setReopenedIds([]);
           setCurrentStep(2);
           toast.success(`${validatedQuestions.length} kérdés sikeresen előállítva!`);
         } else {
@@ -565,7 +578,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
   // Option handlers
   // A lezárt körök (amik után már új kérdéseket kértünk) kérdései zároltak: nem módosíthatók.
   const handleSelectOption = (questionId: number, optionKey: "A" | "B" | "C") => {
-    if (isQuestionLocked(questionId, roundEnds)) return;
+    if (isQuestionLocked(questionId, roundEnds, reopenedIds)) return;
     setAnswers((prev) => {
       const current = prev[questionId];
       const letters = selectedLetters(current);
@@ -594,7 +607,7 @@ Please synthesize everything into the ultimate Master Prompt. ${
   };
 
   const handleExtraTextChange = (questionId: number, text: string) => {
-    if (isQuestionLocked(questionId, roundEnds)) return;
+    if (isQuestionLocked(questionId, roundEnds, reopenedIds)) return;
     setAnswers((prev) => {
       const current = prev[questionId];
       // Kiegészíteni csak már kiválasztott A/B/C választ lehet
@@ -609,13 +622,19 @@ Please synthesize everything into the ultimate Master Prompt. ${
     );
   };
 
+  const handleToggleReopen = (questionId: number) => {
+    setReopenedIds((prev) =>
+      prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId]
+    );
+  };
+
   const handleGuidelineChange = (questionId: number, text: string) => {
-    if (isQuestionLocked(questionId, roundEnds)) return;
+    if (isQuestionLocked(questionId, roundEnds, reopenedIds)) return;
     setGuidelines((prev) => ({ ...prev, [questionId]: text }));
   };
 
   const handleCustomTextChange = (questionId: number, text: string) => {
-    if (isQuestionLocked(questionId, roundEnds)) return;
+    if (isQuestionLocked(questionId, roundEnds, reopenedIds)) return;
     setAnswers((prev) => ({
       ...prev,
       [questionId]: {
@@ -754,6 +773,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               onGuidelineChange={handleGuidelineChange}
               revisitIds={revisitIds}
               onToggleRevisit={handleToggleRevisit}
+              reopenedIds={reopenedIds}
+              onToggleReopen={handleToggleReopen}
               roundEnds={roundEnds}
               goalText={userInput}
               />
@@ -776,6 +797,8 @@ Please synthesize everything into the ultimate Master Prompt. ${
               onGuidelineChange={handleGuidelineChange}
               revisitIds={revisitIds}
               onToggleRevisit={handleToggleRevisit}
+              reopenedIds={reopenedIds}
+              onToggleReopen={handleToggleReopen}
               roundEnds={roundEnds}
               goalText={userInput}
               />
